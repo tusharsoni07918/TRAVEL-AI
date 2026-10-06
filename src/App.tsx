@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TripFormData, SavedTrip } from './types/travel';
+import { Itinerary, GenerationError } from './types/itinerary';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { TripPlanner } from './components/TripPlanner';
 import { HowItWorks } from './components/HowItWorks';
 import { FeaturesSection } from './components/FeaturesSection';
+import { ItineraryDashboard } from './components/ItineraryDashboard';
+import { LoadingOverlay } from './components/LoadingOverlay';
 import { MyTripsModal } from './components/MyTripsModal';
 import { Footer } from './components/Footer';
+import { getSavedTrips, saveTripToStorage, deleteTripFromStorage } from './services/storage';
+import { requestGemmaItinerary } from './services/itineraryApi';
 
 export default function App() {
   // Default Initial Trip Form State
@@ -16,7 +21,7 @@ export default function App() {
     numberOfDays: 3,
     numberOfTravelers: 2,
     budget: 15000,
-    currency: '₹',
+    currency: 'INR',
     travelType: 'Couple',
     travelPace: 'Balanced',
     interests: ['Beaches', 'Food'],
@@ -26,22 +31,22 @@ export default function App() {
     additionalRequirements: '',
   });
 
-  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([
-    {
-      id: 'trip-demo-goa',
-      destination: 'Goa',
-      durationDays: 3,
-      travelers: 2,
-      travelType: 'Couple',
-      budgetFormatted: '₹ 15,000',
-      createdDate: 'Oct 6, 2026',
-      status: 'Ready',
-      imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&auto=format&fit=crop&q=80'
-    }
-  ]);
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [generatedItinerary, setGeneratedItinerary] = useState<Itinerary | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [loadingMode, setLoadingMode] = useState<'generate' | 'regenerate'>('generate');
+  const [generationError, setGenerationError] = useState<GenerationError | null>(null);
 
   const [isMyTripsOpen, setIsMyTripsOpen] = useState(false);
   const [demoLoadedNotification, setDemoLoadedNotification] = useState(false);
+
+  // Load saved trips from localStorage on mount
+  useEffect(() => {
+    const loaded = getSavedTrips();
+    if (loaded && loaded.length > 0) {
+      setSavedTrips(loaded);
+    }
+  }, []);
 
   // Scroll to planner helper
   const scrollToPlanner = () => {
@@ -51,7 +56,17 @@ export default function App() {
     }
   };
 
-  // Try Demo function: Populates exact specs requested by user
+  // Scroll to dashboard helper
+  const scrollToDashboard = () => {
+    setTimeout(() => {
+      const el = document.getElementById('itinerary-dashboard');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 150);
+  };
+
+  // Section 12: Try Demo function (Goa, 3 days, 2 travelers, ₹15,000, Couple, Balanced, etc.)
   const handleTryDemo = () => {
     setFormData({
       destination: 'Goa',
@@ -59,7 +74,7 @@ export default function App() {
       numberOfDays: 3,
       numberOfTravelers: 2,
       budget: 15000,
-      currency: '₹',
+      currency: 'INR',
       travelType: 'Couple',
       travelPace: 'Balanced',
       interests: ['Beaches', 'Food', 'Adventure'],
@@ -75,18 +90,80 @@ export default function App() {
     scrollToPlanner();
   };
 
-  // Save new trip
-  const handleSaveTrip = (newTrip: SavedTrip) => {
-    setSavedTrips(prev => [newTrip, ...prev]);
+  // Handler for successful itinerary generation
+  const handleItineraryGenerated = (itinerary: Itinerary) => {
+    setGeneratedItinerary(itinerary);
+    setGenerationError(null);
+    scrollToDashboard();
   };
 
-  // Delete trip
+  // Regenerate handler: Sends current planner form back to Gemma 4 31B
+  const handleRegenerate = async () => {
+    setLoadingMode('regenerate');
+    setIsGenerating(true);
+    setGenerationError(null);
+
+    try {
+      const response = await requestGemmaItinerary(formData);
+      if (response.success && response.itinerary) {
+        setGeneratedItinerary(response.itinerary);
+        scrollToDashboard();
+      } else {
+        setGenerationError(response.error || {
+          type: 'UNKNOWN_ERROR',
+          message: 'Unable to regenerate your itinerary right now. Please try again.',
+          modelTargeted: 'gemma-4-31b-it'
+        });
+        scrollToPlanner();
+      }
+    } catch (err: any) {
+      setGenerationError({
+        type: 'NETWORK_ERROR',
+        message: 'Network error while regenerating itinerary.',
+        modelTargeted: 'gemma-4-31b-it'
+      });
+      scrollToPlanner();
+    } finally {
+      setIsGenerating(false);
+      setLoadingMode('generate');
+    }
+  };
+
+  // Save new trip to localStorage and state
+  const handleSaveTrip = (newTrip: SavedTrip) => {
+    saveTripToStorage(newTrip);
+    setSavedTrips(prev => {
+      const exists = prev.some(t => t.id === newTrip.id);
+      return exists ? prev : [newTrip, ...prev];
+    });
+  };
+
+  // Delete trip from localStorage and state
   const handleDeleteTrip = (id: string) => {
-    setSavedTrips(prev => prev.filter(t => t.id !== id));
+    const updated = deleteTripFromStorage(id);
+    setSavedTrips(updated);
+  };
+
+  // Open saved trip from My Trips Modal
+  const handleSelectSavedTrip = (savedTrip: SavedTrip) => {
+    setGeneratedItinerary(savedTrip.itinerary);
+    if (savedTrip.plannerData) {
+      setFormData(savedTrip.plannerData);
+    }
+    setIsMyTripsOpen(false);
+    scrollToDashboard();
   };
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-sky-500/20 selection:text-sky-900">
+      {/* Animated Loading Overlay with dynamic steps */}
+      {isGenerating && (
+        <LoadingOverlay
+          destination={formData.destination}
+          mode={loadingMode}
+        />
+      )}
+
       {/* Responsive Navbar */}
       <Navbar
         onPlanTripClick={scrollToPlanner}
@@ -107,8 +184,28 @@ export default function App() {
           formData={formData}
           setFormData={setFormData}
           onSaveTrip={handleSaveTrip}
+          onItineraryGenerated={handleItineraryGenerated}
+          isGenerating={isGenerating}
+          setIsGenerating={(gen) => {
+            setLoadingMode('generate');
+            setIsGenerating(gen);
+          }}
+          generationError={generationError}
+          setGenerationError={setGenerationError}
           demoLoadedNotification={demoLoadedNotification}
         />
+
+        {/* AI-Generated Itinerary Dashboard */}
+        {generatedItinerary && (
+          <ItineraryDashboard
+            itinerary={generatedItinerary}
+            plannerData={formData}
+            onEditTrip={scrollToPlanner}
+            onRegenerate={handleRegenerate}
+            onSaveTrip={handleSaveTrip}
+            onBackToPlanner={scrollToPlanner}
+          />
+        )}
 
         {/* How It Works (3 Steps) */}
         <HowItWorks onPlanTripClick={scrollToPlanner} />
@@ -131,6 +228,7 @@ export default function App() {
         isOpen={isMyTripsOpen}
         onClose={() => setIsMyTripsOpen(false)}
         savedTrips={savedTrips}
+        onSelectTrip={handleSelectSavedTrip}
         onDeleteTrip={handleDeleteTrip}
         onPlanTripClick={scrollToPlanner}
       />

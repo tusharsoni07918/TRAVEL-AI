@@ -26,7 +26,9 @@ import {
   Mountain,
   Landmark,
   Share2,
-  Bookmark
+  Bookmark,
+  Cpu,
+  RefreshCw
 } from 'lucide-react';
 import { 
   TripFormData, 
@@ -38,11 +40,20 @@ import {
   AccommodationType,
   SavedTrip 
 } from '../types/travel';
+import { Itinerary, GenerationError } from '../types/itinerary';
+import { requestGemmaItinerary } from '../services/itineraryApi';
+import { createSampleItinerary } from '../services/sampleItinerary';
+import { ErrorAlert } from './ErrorAlert';
 
 interface TripPlannerProps {
   formData: TripFormData;
   setFormData: React.Dispatch<React.SetStateAction<TripFormData>>;
   onSaveTrip: (trip: SavedTrip) => void;
+  onItineraryGenerated: (itinerary: Itinerary) => void;
+  isGenerating: boolean;
+  setIsGenerating: (generating: boolean) => void;
+  generationError: GenerationError | null;
+  setGenerationError: (err: GenerationError | null) => void;
   demoLoadedNotification: boolean;
 }
 
@@ -50,12 +61,14 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
   formData,
   setFormData,
   onSaveTrip,
+  onItineraryGenerated,
+  isGenerating,
+  setIsGenerating,
+  generationError,
+  setGenerationError,
   demoLoadedNotification,
 }) => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationStep, setGenerationStep] = useState(0);
-  const [showResultModal, setShowResultModal] = useState(false);
 
   const popularDestinations = [
     'Goa',
@@ -121,65 +134,104 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
         : [...prev.interests, interest];
       return { ...prev, interests: updated };
     });
+    if (errors.interests) setErrors(prev => ({ ...prev, interests: '' }));
   };
 
+  // Section 7: Strict Form Validation
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!formData.destination.trim()) {
+    if (!formData.destination || !formData.destination.trim()) {
       newErrors.destination = 'Please enter or select a destination';
     }
     if (!formData.startDate) {
       newErrors.startDate = 'Please choose a trip start date';
     }
     if (!formData.numberOfDays || Number(formData.numberOfDays) <= 0) {
-      newErrors.numberOfDays = 'Duration must be at least 1 day';
+      newErrors.numberOfDays = 'Duration must be greater than 0';
+    }
+    if (!formData.numberOfTravelers || Number(formData.numberOfTravelers) <= 0) {
+      newErrors.numberOfTravelers = 'Travelers must be greater than 0';
     }
     if (!formData.budget || Number(formData.budget) <= 0) {
-      newErrors.budget = 'Please enter an estimated budget';
+      newErrors.budget = 'Please enter a budget greater than 0';
     }
-    if (formData.interests.length === 0) {
-      newErrors.interests = 'Please pick at least one travel interest';
+    if (!formData.currency) {
+      newErrors.currency = 'Please select a currency';
+    }
+    if (!formData.travelType) {
+      newErrors.travelType = 'Please select a travel group style';
+    }
+    if (!formData.travelPace) {
+      newErrors.travelPace = 'Please select a travel pace';
+    }
+    if (!formData.interests || formData.interests.length === 0) {
+      newErrors.interests = 'Please select at least one travel interest';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleGenerate = () => {
+  // Section 8: Generate Button Flow
+  const handleGenerate = async () => {
+    setGenerationError(null);
+
+    // 1. Validate form
     if (!validateForm()) {
-      // Scroll to top of planner form
       const el = document.getElementById('planner');
       el?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
 
+    // 3 & 4. Disable controls & Show loading
     setIsGenerating(true);
-    setGenerationStep(1);
 
-    // Simulated progress steps for the temporary AI transition
-    setTimeout(() => setGenerationStep(2), 800);
-    setTimeout(() => setGenerationStep(3), 1600);
-    setTimeout(() => {
+    try {
+      // 5. Call Gemma 4 31B IT via secure backend
+      const response = await requestGemmaItinerary(formData);
+
+      if (response.success && response.itinerary) {
+        // 9. Store itinerary & navigate to dashboard
+        onItineraryGenerated(response.itinerary);
+
+        // Auto-save this trip
+        const newSavedTrip: SavedTrip = {
+          id: `trip-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          destination: response.itinerary.destination,
+          durationDays: response.itinerary.days.length,
+          travelers: Number(formData.numberOfTravelers),
+          travelType: formData.travelType,
+          budgetFormatted: `${response.itinerary.currency} ${response.itinerary.totalEstimatedCost.toLocaleString()}`,
+          totalEstimatedCost: response.itinerary.totalEstimatedCost,
+          currency: response.itinerary.currency,
+          plannerData: { ...formData },
+          itinerary: response.itinerary,
+          status: 'Ready',
+          imageUrl: response.itinerary.destination.toLowerCase().includes('goa') 
+            ? 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&auto=format&fit=crop&q=80'
+            : 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80'
+        };
+        onSaveTrip(newSavedTrip);
+      } else {
+        // Set error while preserving all entered form values
+        setGenerationError(response.error || {
+          type: 'UNKNOWN_ERROR',
+          message: 'Unable to generate your itinerary right now. Your trip details are safe. Please try again.',
+          modelTargeted: 'gemma-4-31b-it'
+        });
+      }
+    } catch (err: any) {
+      setGenerationError({
+        type: 'NETWORK_ERROR',
+        message: 'Unable to generate your itinerary right now. Your trip details are safe. Please try again.',
+        diagnosticDetails: err.message || 'Unexpected network communication failure.',
+        modelTargeted: 'gemma-4-31b-it'
+      });
+    } finally {
       setIsGenerating(false);
-      setShowResultModal(true);
-
-      // Auto-save this trip
-      const newSavedTrip: SavedTrip = {
-        id: `trip-${Date.now()}`,
-        destination: formData.destination,
-        durationDays: Number(formData.numberOfDays),
-        travelers: Number(formData.numberOfTravelers),
-        travelType: formData.travelType,
-        budgetFormatted: `${formData.currency} ${Number(formData.budget).toLocaleString()}`,
-        createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        status: 'Ready',
-        imageUrl: formData.destination.toLowerCase().includes('goa') 
-          ? 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&auto=format&fit=crop&q=80'
-          : 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80'
-      };
-      onSaveTrip(newSavedTrip);
-    }, 2400);
+    }
   };
 
   return (
@@ -187,26 +239,36 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-12">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Interactive Trip Customizer</span>
+            <Cpu className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Powered by Gemma 4 31B IT</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Plan Your Tailored Travel Itinerary
           </h2>
           <p className="mt-3 text-base text-slate-600">
-            Tell TripGenie AI your travel preferences, budget, and favorite pace. We'll curate every single detail.
+            Tell TripGenie AI your travel preferences, budget, and favorite pace. Powered by Google's <strong className="text-slate-900">gemma-4-31b-it</strong>.
           </p>
 
           {/* Demo loaded banner */}
           {demoLoadedNotification && (
             <div className="mt-4 p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <Check className="w-4 h-4 text-teal-600 shrink-0" />
-              <span>Demo parameters successfully loaded for Goa (3 Days, 2 Travelers, ₹15,000)! You can customize below or click Generate.</span>
+              <span>Demo parameters loaded for Goa (3 Days, 2 Travelers, ₹15,000)! Click "Generate My Itinerary" below to run with Gemma 4 31B.</span>
             </div>
           )}
         </div>
+
+        {/* Error Alert Display */}
+        {generationError && (
+          <ErrorAlert
+            error={generationError}
+            onRetry={handleGenerate}
+            onDismiss={() => setGenerationError(null)}
+            onLoadSamplePreview={() => onItineraryGenerated(createSampleItinerary(formData))}
+          />
+        )}
 
         {/* Planner Card Container */}
         <div className="bg-slate-50/70 border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-100">
@@ -352,7 +414,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 {/* Number of Travelers */}
                 <div className="md:col-span-4 space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Number of Travelers
+                    Number of Travelers <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <button
@@ -381,18 +443,18 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 {/* Currency Selection */}
                 <div className="md:col-span-3 space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Currency
+                    Currency <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
                     className="w-full px-3 py-3 bg-white rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:border-sky-500"
                   >
-                    <option value="₹">₹ INR (Indian Rupee)</option>
-                    <option value="$">$ USD (US Dollar)</option>
-                    <option value="€">€ EUR (Euro)</option>
-                    <option value="£">£ GBP (British Pound)</option>
-                    <option value="A$">A$ AUD (Australian Dollar)</option>
+                    <option value="INR">₹ INR (Indian Rupee)</option>
+                    <option value="USD">$ USD (US Dollar)</option>
+                    <option value="EUR">€ EUR (Euro)</option>
+                    <option value="GBP">£ GBP (British Pound)</option>
+                    <option value="AUD">A$ AUD (Australian Dollar)</option>
                     <option value="AED">AED (UAE Dirham)</option>
                   </select>
                 </div>
@@ -415,7 +477,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         if (errors.budget) setErrors(prev => ({ ...prev, budget: '' }));
                       }}
                       placeholder="e.g. 15000, 25000..."
-                      className={`w-full pl-10 pr-4 py-3 bg-white rounded-xl border text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 transition ${
+                      className={`w-full pl-14 pr-4 py-3 bg-white rounded-xl border text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 transition ${
                         errors.budget 
                           ? 'border-rose-400 focus:ring-rose-200' 
                           : 'border-slate-200 focus:border-sky-500 focus:ring-sky-100'
@@ -434,7 +496,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
               {/* Travel Type Selectable Cards */}
               <div className="pt-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Travel Group Style
+                  Travel Group Style <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {travelTypes.map((t) => {
@@ -472,7 +534,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
               {/* Travel Pace */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Trip Pace
+                  Trip Pace <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {travelPaces.map((p) => {
@@ -653,16 +715,12 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full sm:w-auto min-w-[320px] px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-extrabold text-lg shadow-xl shadow-sky-600/25 hover:shadow-2xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-3 group"
+                className="w-full sm:w-auto min-w-[340px] px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-extrabold text-lg shadow-xl shadow-sky-600/25 hover:shadow-2xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-3 group"
               >
                 {isGenerating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>
-                      {generationStep === 1 && 'Analyzing Destination Vibes...'}
-                      {generationStep === 2 && 'Balancing Budget & Stops...'}
-                      {generationStep === 3 && 'Finalizing Itinerary...'}
-                    </span>
+                    <span>Calling Gemma 4 31B IT...</span>
                   </>
                 ) : (
                   <>
@@ -673,126 +731,17 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 )}
               </button>
 
-              <p className="mt-3 text-xs text-slate-500">
-                ✨ Free preview • Real-time budget calculation • Exportable day-by-day plan
-              </p>
+              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Model: <strong className="font-mono text-slate-700">gemma-4-31b-it</strong></span>
+                <span>•</span>
+                <span>Real-time budget balancing & day-by-day plan</span>
+              </div>
             </div>
 
           </div>
         </div>
       </div>
-
-      {/* Generated Itinerary Preview Modal */}
-      {showResultModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-6">
-            
-            {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Itinerary Preview Generated
-                </span>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {formData.destination} Adventure ({formData.numberOfDays} Days)
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Tailored for {formData.numberOfTravelers} Travelers • {formData.travelType} • {formData.travelPace} Pace
-                </p>
-              </div>
-              <button
-                onClick={() => setShowResultModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* AI Next Phase Notice */}
-            <div className="p-4 rounded-2xl bg-sky-50 border border-sky-100 text-sky-900 text-xs leading-relaxed space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-sky-800">
-                <Sparkles className="w-4 h-4 text-sky-600" />
-                Frontend Preview Complete
-              </div>
-              <p>
-                Your customized trip parameters have been captured and saved to <strong>My Trips</strong>. Live AI LLM generation pipeline will be plugged in during the next step!
-              </p>
-            </div>
-
-            {/* Quick Trip Highlights Preview */}
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] text-slate-400 block font-medium">Estimated Cost</span>
-                <span className="text-base font-extrabold text-slate-900">
-                  {formData.currency} {Number(formData.budget).toLocaleString()}
-                </span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] text-slate-400 block font-medium">Accommodation</span>
-                <span className="text-base font-extrabold text-slate-900">{formData.accommodation}</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] text-slate-400 block font-medium">Transport</span>
-                <span className="text-base font-extrabold text-slate-900">{formData.transportPreference}</span>
-              </div>
-            </div>
-
-            {/* Daily Schedule Preview Snippet */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Curated Day-by-Day Sneak Peek
-              </h4>
-
-              <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                  <span className="font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md shrink-0">Day 1</span>
-                  <div>
-                    <span className="font-bold text-slate-800 block">Arrival & Coastal Unwind</span>
-                    <span className="text-slate-500">Check-in at {formData.accommodation} stay, beachside welcome meal, and evening sunset stroll.</span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                  <span className="font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md shrink-0">Day 2</span>
-                  <div>
-                    <span className="font-bold text-slate-800 block">Heritage Exploration & {formData.interests[0] || 'Local'} Sights</span>
-                    <span className="text-slate-500">Morning architectural walking tour, artisan markets, and authentic culinary dinner spot.</span>
-                  </div>
-                </div>
-
-                {Number(formData.numberOfDays) >= 3 && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
-                    <span className="font-black text-teal-700 bg-teal-100 px-2 py-0.5 rounded-md shrink-0">Day 3</span>
-                    <div>
-                      <span className="font-bold text-slate-800 block">Scenic Excursion & Farewell Night</span>
-                      <span className="text-slate-500">Adventure activity, photo session, and relaxed departure shopping.</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={() => setShowResultModal(false)}
-                className="flex-1 py-3 px-5 rounded-xl bg-sky-600 text-white font-bold text-sm hover:bg-sky-500 shadow-md transition"
-              >
-                Saved in "My Trips"!
-              </button>
-              <button
-                onClick={() => setShowResultModal(false)}
-                className="py-3 px-5 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition"
-              >
-                Close & Edit Form
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </section>
   );
 };

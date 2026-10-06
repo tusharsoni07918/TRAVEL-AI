@@ -1,3 +1,5 @@
+import type { Itinerary } from './itinerary';
+
 export type TravelType = 'Solo' | 'Couple' | 'Family' | 'Friends';
 export type TravelPace = 'Relaxed' | 'Balanced' | 'Fast-paced';
 export type FoodPreference = 'Vegetarian' | 'Non-Vegetarian' | 'Vegan' | 'No Preference';
@@ -31,12 +33,16 @@ export interface TripFormData {
 
 export interface SavedTrip {
   id: string;
+  createdAt: string;
   destination: string;
   durationDays: number;
   travelers: number;
   travelType: TravelType;
   budgetFormatted: string;
-  createdDate: string;
+  totalEstimatedCost: number;
+  currency: string;
+  plannerData: TripFormData;
+  itinerary: Itinerary;
+  imageUrl?: string;
   status: 'Ready' | 'Draft';
-  imageUrl: string;
 }
