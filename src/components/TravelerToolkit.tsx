@@ -314,13 +314,28 @@ export const TravelerToolkit: React.FC<TravelerToolkitProps> = ({
       {/* TAB 2: PACKING CHECKLIST */}
       {activeTab === 'packing' && (
         <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Departure transit preparation card if startingPoint is provided */}
+          {(itinerary.startingPoint || plannerData.startingPoint) && (
+            <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 flex items-start gap-3">
+              <Compass className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 block">
+                  Departure Route: {itinerary.startingPoint || plannerData.startingPoint} → {itinerary.destination}
+                </span>
+                <p className="text-xs text-indigo-950/80 dark:text-indigo-300">
+                  Carry physical government photo ID, transit/rail e-tickets, portable chargers (10,000mAh), and keep emergency contact cards accessible during intercity travel.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Progress bar */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span className="text-xs font-bold text-slate-800 block">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                 Packing Progress: {packedCount} of {packingList.length} items packed ({packedPct}%)
               </span>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Check items off as you place them into your luggage. Saved automatically.
               </p>
             </div>

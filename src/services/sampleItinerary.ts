@@ -7,13 +7,22 @@ export function createSampleItinerary(formData: TripFormData): Itinerary {
   const currency = formData.currency || 'INR';
   const dest = formData.destination || 'Goa';
 
+  const startPt = formData.startingPoint?.trim();
+  const hasIntercity = Boolean(startPt && !startPt.toLowerCase().includes(dest.toLowerCase()));
+
   const days = [
     {
       day: 1,
-      title: 'North Goa Coastal Welcome & Sunset at Curlies',
+      title: hasIntercity 
+        ? `Departure from ${startPt.split(',')[0]} & North Goa Coastal Welcome`
+        : 'North Goa Coastal Welcome & Sunset at Curlies',
       morning: {
-        activity: 'Arrival, Hotel Check-in & Vagator Cliff Walk',
-        description: 'Settle into your accommodation, unpack, and take an unhurried morning stroll along the Chapora red laterite cliffs.',
+        activity: hasIntercity 
+          ? `Departure from ${startPt.split(',')[0]} & Hotel Check-in`
+          : 'Arrival, Hotel Check-in & Vagator Cliff Walk',
+        description: hasIntercity
+          ? `Transit from ${startPt} to Goa. Settle into your accommodation, unpack, and take an unhurried stroll along the Chapora red laterite cliffs.`
+          : 'Settle into your accommodation, unpack, and take an unhurried morning stroll along the Chapora red laterite cliffs.',
         estimatedCost: 300,
         duration: '2.5 hours'
       },
@@ -124,15 +133,22 @@ export function createSampleItinerary(formData: TripFormData): Itinerary {
     }
   ];
 
+  const summaryPrefix = hasIntercity
+    ? `A comprehensive ${daysCount}-day ${formData.travelType.toLowerCase()} journey from ${startPt} to ${dest}`
+    : `A comprehensive ${daysCount}-day ${formData.travelType.toLowerCase()} journey through ${dest}`;
+
+  const transportShare = Math.round(budget * (hasIntercity ? 0.22 : 0.16));
+
   return {
+    startingPoint: startPt || undefined,
     destination: dest,
-    tripSummary: `A comprehensive ${daysCount}-day ${formData.travelType.toLowerCase()} journey through ${dest}, curated for a ${formData.travelPace.toLowerCase()} pace and focusing on ${formData.interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${formData.accommodation} accommodations, ${formData.transportPreference} transit). Powered by Gemma 4 31B IT.`,
+    tripSummary: `${summaryPrefix}, curated for a ${formData.travelPace.toLowerCase()} pace and focusing on ${formData.interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${formData.accommodation} accommodations, ${formData.transportPreference} transit). Powered by Gemma 4 31B IT.`,
     totalEstimatedCost: budget,
     currency,
     budgetBreakdown: {
-      accommodation: Math.round(budget * 0.38),
-      food: Math.round(budget * 0.28),
-      transportation: Math.round(budget * 0.16),
+      accommodation: Math.round(budget * (hasIntercity ? 0.35 : 0.38)),
+      food: Math.round(budget * (hasIntercity ? 0.25 : 0.28)),
+      transportation: transportShare,
       activities: Math.round(budget * 0.12),
       miscellaneous: Math.round(budget * 0.06)
     },
@@ -143,6 +159,10 @@ export function createSampleItinerary(formData: TripFormData): Itinerary {
       `Palolem Eco Beach Cabanas (Direct shoreline access)`
     ],
     transportationTips: [
+      ...(hasIntercity 
+        ? [`Intercity transit from ${startPt} to ${dest}: Estimated transportation cost approx. ${currency} ${transportShare.toLocaleString()} (based on standard flight/train transit estimates).`] 
+        : []
+      ),
       `Rent an Activa scooter (₹350–₹450/day) for optimal coastal flexibility`,
       'Pre-install GoaMiles app for government-regulated taxi pricing',
       'Download offline Google Maps for South Goa forest patches'

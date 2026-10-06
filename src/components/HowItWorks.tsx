@@ -37,18 +37,18 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onPlanTripClick }) => {
   ];
 
   return (
-    <section id="how-it-works" className="py-20 lg:py-28 bg-slate-50/60 border-y border-slate-100">
+    <section id="how-it-works" className="py-20 lg:py-28 bg-slate-50/60 dark:bg-slate-950 border-y border-slate-100 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3">
             <span>Simple 3-Step Process</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             How TripGenie AI Works
           </h2>
-          <p className="mt-3 text-base sm:text-lg text-slate-600">
+          <p className="mt-3 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             From rough idea to full travel itinerary in under 60 seconds.
           </p>
         </div>
@@ -60,10 +60,10 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onPlanTripClick }) => {
             return (
               <div 
                 key={item.step}
-                className="relative bg-white rounded-3xl p-8 border border-slate-100 shadow-xl shadow-slate-100 hover:shadow-2xl hover:shadow-slate-200/80 transition-all hover:-translate-y-1.5 flex flex-col justify-between group"
+                className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-xl dark:shadow-none shadow-slate-100 hover:shadow-2xl hover:shadow-slate-200/80 dark:hover:border-slate-700 transition-all hover:-translate-y-1.5 flex flex-col justify-between group"
               >
                 {/* Step indicator watermark */}
-                <div className="absolute top-6 right-6 text-4xl font-black text-slate-100 group-hover:text-sky-100 transition-colors pointer-events-none select-none">
+                <div className="absolute top-6 right-6 text-4xl font-black text-slate-100 dark:text-slate-800 group-hover:text-sky-100 dark:group-hover:text-slate-700 transition-colors pointer-events-none select-none">
                   {item.step}
                 </div>
 
@@ -73,24 +73,24 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onPlanTripClick }) => {
                     <Icon className="w-7 h-7" />
                   </div>
 
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-2">
                     {item.badge}
                   </span>
 
-                  <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-sky-600 transition-colors">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                     {item.title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                     {item.description}
                   </p>
                 </div>
 
-                <div className="pt-6 mt-6 border-t border-slate-50 flex items-center justify-between text-xs font-semibold text-slate-500">
-                  <span className="px-2.5 py-1 rounded-full bg-slate-50 text-slate-600">
+                <div className="pt-6 mt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="px-2.5 py-1 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700">
                     {item.tag}
                   </span>
-                  <span className="text-sky-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                     <span>Explore</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>
@@ -110,7 +110,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ onPlanTripClick }) => {
           </div>
           <button
             onClick={onPlanTripClick}
-            className="px-6 py-3 rounded-xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 transition shadow-md shrink-0"
+            className="px-6 py-3 rounded-xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 transition shadow-md shrink-0 cursor-pointer"
           >
             Start Planning Now
           </button>

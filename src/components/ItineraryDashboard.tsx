@@ -370,7 +370,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
     : daysList.filter(d => d.day === activeDayView);
 
   return (
-    <div id="itinerary-dashboard" className="py-10 lg:py-16 bg-slate-50/60 border-t border-slate-200">
+    <div id="itinerary-dashboard" className="py-10 lg:py-16 bg-slate-50/60 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
 
         {/* Toast Notification */}
@@ -383,10 +383,10 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
         )}
 
         {/* 1. TOP DASHBOARD ACTION BAR (Hidden in print) */}
-        <div className="print:hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="print:hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
           <button
             onClick={onBackToPlanner}
-            className="flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-sky-600 transition"
+            className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Planner</span>
@@ -396,40 +396,40 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
             {/* Edit Trip */}
             <button
               onClick={onEditTrip}
-              className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition text-xs font-bold flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Return to planner with previous form values"
             >
-              <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+              <Edit3 className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
               <span>Edit Trip</span>
             </button>
 
             {/* Regenerate */}
             <button
               onClick={onRegenerate}
-              className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition text-xs font-bold flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Regenerate with Gemma 4 31B IT"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
+              <RefreshCw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>Regenerate</span>
             </button>
 
             {/* Add to Calendar (.ICS) */}
             <button
               onClick={() => exportItineraryToIcs(itinerary, plannerData.startDate)}
-              className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Download .ICS file for Google Calendar, Apple Calendar, or Outlook"
             >
-              <CalendarPlus className="w-3.5 h-3.5 text-indigo-600" />
+              <CalendarPlus className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>Add to Calendar</span>
             </button>
 
             {/* Offline Travel Pass */}
             <button
               onClick={() => setIsOfflinePassOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="Open offline digital boarding pass with emergency numbers"
             >
-              <QrCode className="w-3.5 h-3.5 text-sky-600" />
+              <QrCode className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
               <span>Offline Pass</span>
             </button>
 
@@ -445,7 +445,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
             {/* Print Itinerary */}
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 border border-transparent dark:border-slate-700 transition text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
               title="Open clean printable view"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -455,7 +455,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
             {/* Share */}
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
               title="Share itinerary link"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
@@ -464,46 +464,56 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
         </div>
 
         {/* 2. TRIP HEADER SECTION */}
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-xl relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200/90 dark:border-slate-800 shadow-xl dark:shadow-none relative overflow-hidden transition-colors">
           
           {/* Subtle top model accent ribbon */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-sky-500 via-indigo-600 to-teal-400" />
 
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5" />
                   AI Planned Adventure
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-mono font-semibold">
-                  <Cpu className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-mono font-semibold">
+                  <Cpu className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   gemma-4-31b-it
                 </span>
-                <span className="text-xs text-slate-400">•</span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   Start: {plannerData.startDate || 'Upcoming'}
                 </span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-3">
-                <MapPin className="w-8 h-8 text-rose-500 shrink-0" />
-                <span>{itinerary.destination}</span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight flex flex-wrap items-center gap-2 sm:gap-3">
+                <MapPin className="w-7 h-7 sm:w-8 sm:h-8 text-rose-500 shrink-0" />
+                {(itinerary.startingPoint || plannerData.startingPoint) ? (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-slate-800 dark:text-slate-200">
+                      {itinerary.startingPoint || plannerData.startingPoint}
+                    </span>
+                    <span className="text-sky-600 dark:text-sky-400 font-extrabold text-2xl sm:text-3xl">→</span>
+                    <span>{itinerary.destination}</span>
+                  </span>
+                ) : (
+                  <span>{itinerary.destination}</span>
+                )}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 font-semibold pt-1">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300 font-semibold pt-1">
                 <span>{daysList.length} Days</span>
-                <span className="text-slate-300">•</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span>{plannerData.numberOfTravelers} Travelers</span>
-                <span className="text-slate-300">•</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span>{plannerData.travelType} Style</span>
-                <span className="text-slate-300">•</span>
-                <span className="text-teal-700">{plannerData.travelPace} Travel</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-teal-700 dark:text-teal-400">{plannerData.travelPace} Travel</span>
               </div>
             </div>
 
             {/* Total Budget Card */}
-            <div className="w-full lg:w-auto bg-slate-950 text-white px-7 py-5 rounded-2xl shadow-lg flex lg:flex-col justify-between items-center lg:items-end gap-2">
+            <div className="w-full lg:w-auto bg-slate-950 dark:bg-slate-800/90 text-white px-7 py-5 rounded-2xl shadow-lg border border-slate-800 dark:border-slate-700 flex lg:flex-col justify-between items-center lg:items-end gap-2">
               <div className="text-left lg:text-right">
                 <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">
                   Total Estimated Cost
@@ -512,7 +522,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                   {currency} {totalCost.toLocaleString()}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+              <span className="text-[11px] text-slate-400 bg-slate-900 dark:bg-slate-700 px-2 py-0.5 rounded-md">
                 Est. Budget
               </span>
             </div>
@@ -520,58 +530,65 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
 
           {/* Quick Specs Pill Row */}
           <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[11px] text-slate-400 block font-medium">Destination</span>
-              <span className="text-sm font-bold text-slate-900 truncate block mt-0.5">{itinerary.destination}</span>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">
+                {(itinerary.startingPoint || plannerData.startingPoint) ? 'Route' : 'Destination'}
+              </span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white truncate block mt-0.5">
+                {(itinerary.startingPoint || plannerData.startingPoint) 
+                  ? `${(itinerary.startingPoint || plannerData.startingPoint || '').split(',')[0]} → ${itinerary.destination.split(',')[0]}`
+                  : itinerary.destination
+                }
+              </span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[11px] text-slate-400 block font-medium">Duration</span>
-              <span className="text-sm font-bold text-slate-900 block mt-0.5">{daysList.length} Days</span>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">Duration</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white block mt-0.5">{daysList.length} Days</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[11px] text-slate-400 block font-medium">Group & Pace</span>
-              <span className="text-sm font-bold text-slate-900 block mt-0.5">{plannerData.travelType} • {plannerData.travelPace}</span>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">Group & Pace</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white block mt-0.5">{plannerData.travelType} • {plannerData.travelPace}</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-[11px] text-slate-400 block font-medium">Target Budget</span>
-              <span className="text-sm font-bold text-slate-900 block mt-0.5">{currency} {userBudget.toLocaleString()}</span>
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">Target Budget</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white block mt-0.5">{currency} {userBudget.toLocaleString()}</span>
             </div>
           </div>
         </div>
 
         {/* 3. TRIP SUMMARY CARD */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl space-y-3">
-          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 shadow-xl dark:shadow-none space-y-3 transition-colors">
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <Compass className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900">Trip Summary</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Trip Summary</h2>
           </div>
-          <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal pt-1">
+          <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-normal pt-1">
             {itinerary.tripSummary || `A personalized ${daysList.length}-day journey through ${itinerary.destination} tailored for a ${plannerData.travelPace.toLowerCase()} pace.`}
           </p>
         </div>
 
         {/* 4. BUDGET OVERVIEW SECTION */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 shadow-xl dark:shadow-none space-y-6 transition-colors">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Wallet className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">Budget Overview</h2>
-                <p className="text-xs text-slate-500">Comparing estimated expenses with your planned budget</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Budget Overview</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Comparing estimated expenses with your planned budget</p>
               </div>
             </div>
 
             {/* Status Pill Badge */}
             <div className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 ${
               budgetStatus === 'WITHIN' 
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
                 : budgetStatus === 'NEAR' 
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200' 
-                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' 
+                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
             }`}>
               {budgetStatus === 'WITHIN' ? <TrendingDown className="w-3.5 h-3.5" /> : budgetStatus === 'NEAR' ? <AlertTriangle className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
               <span>{budgetMessage}</span>
@@ -580,54 +597,54 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
 
           {/* Budget Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xs text-slate-500 font-medium block">User Planned Budget</span>
-              <span className="text-xl font-black text-slate-900 block mt-1">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">User Planned Budget</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white block mt-1">
                 {currency} {userBudget.toLocaleString()}
               </span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">Target ceiling</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">Target ceiling</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xs text-slate-500 font-medium block">Total Estimated Cost</span>
-              <span className="text-xl font-black text-slate-900 block mt-1">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Total Estimated Cost</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white block mt-1">
                 {currency} {totalCost.toLocaleString()}
               </span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">Calculated by Gemma</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">Calculated by Gemma</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xs text-slate-500 font-medium block">Budget Utilization</span>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">Budget Utilization</span>
               <span className={`text-xl font-black block mt-1 ${
-                budgetStatus === 'WITHIN' ? 'text-emerald-600' : budgetStatus === 'NEAR' ? 'text-amber-600' : 'text-rose-600'
+                budgetStatus === 'WITHIN' ? 'text-emerald-600 dark:text-emerald-400' : budgetStatus === 'NEAR' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
               }`}>
                 {Math.round(budgetRatio * 100)}%
               </span>
-              <span className="text-[11px] text-slate-400 block mt-0.5">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">
                 {budgetStatus === 'WITHIN' ? 'Within target limits' : budgetStatus === 'NEAR' ? 'Near maximum budget' : 'Exceeds budget'}
               </span>
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-400 italic">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
             * Note: These are AI-generated estimates based on typical seasonal rates. They do not constitute guaranteed prices or financial commitments.
           </p>
         </div>
 
         {/* 5. BUDGET BREAKDOWN (CATEGORY PROGRESS BARS) */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl space-y-6">
-          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 shadow-xl dark:shadow-none space-y-6 transition-colors">
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Budget Breakdown</h2>
-              <p className="text-xs text-slate-500">Dynamic category distribution of estimated expenses</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Budget Breakdown</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Dynamic category distribution of estimated expenses</p>
             </div>
           </div>
 
           {/* Unified horizontal progress bar */}
-          <div className="h-3.5 rounded-full bg-slate-100 overflow-hidden flex">
+          <div className="h-3.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
             {budgetCategories.map((cat, idx) => {
               const pct = Math.max(2, Math.round((cat.amount / calculatedTotal) * 100));
               return (
@@ -648,23 +665,23 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
               const pct = Math.round((cat.amount / calculatedTotal) * 100);
 
               return (
-                <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex flex-col justify-between space-y-3">
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80 flex flex-col justify-between space-y-3">
                   <div>
                     <div className="flex items-center justify-between">
                       <div className={`p-2 rounded-xl ${cat.bgColor} ${cat.textColor}`}>
                         <IconComp className="w-4 h-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-500">{pct}%</span>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{pct}%</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-700 block mt-2">{cat.name}</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mt-2">{cat.name}</span>
                   </div>
 
                   <div>
-                    <div className="text-base font-black text-slate-900">
+                    <div className="text-base font-black text-slate-900 dark:text-white">
                       {currency} {cat.amount.toLocaleString()}
                     </div>
                     {/* Small category bar */}
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full mt-1.5 overflow-hidden">
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mt-1.5 overflow-hidden">
                       <div style={{ width: `${pct}%` }} className={`h-full ${cat.color}`} />
                     </div>
                   </div>

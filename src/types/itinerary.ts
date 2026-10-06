@@ -58,6 +58,7 @@ export interface PhotoSpot {
 }
 
 export interface Itinerary {
+  startingPoint?: string;
   destination: string;
   tripSummary: string;
   totalEstimatedCost: number;

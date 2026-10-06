@@ -25,12 +25,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onTryDemoClick,
 }) => {
   return (
-    <section className="relative overflow-hidden pt-8 pb-16 lg:pt-14 lg:pb-24 bg-gradient-to-b from-sky-50/50 via-white to-slate-50">
+    <section className="relative overflow-hidden pt-8 pb-16 lg:pt-14 lg:pb-24 bg-gradient-to-b from-sky-50/50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 transition-colors">
       {/* Background ambient gradient blurs */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 pointer-events-none overflow-hidden opacity-60">
-        <div className="absolute -top-24 left-1/4 w-96 h-96 bg-sky-200/50 rounded-full blur-3xl" />
-        <div className="absolute -top-20 right-1/4 w-96 h-96 bg-indigo-200/40 rounded-full blur-3xl" />
-        <div className="absolute top-32 left-1/2 w-72 h-72 bg-teal-200/40 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 pointer-events-none overflow-hidden opacity-60 dark:opacity-30">
+        <div className="absolute -top-24 left-1/4 w-96 h-96 bg-sky-200/50 dark:bg-sky-500/20 rounded-full blur-3xl" />
+        <div className="absolute -top-20 right-1/4 w-96 h-96 bg-indigo-200/40 dark:bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-32 left-1/2 w-72 h-72 bg-teal-200/40 dark:bg-teal-500/20 rounded-full blur-3xl" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,23 +39,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Left Column: Heading & CTAs */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             {/* Tagline Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/80 border border-sky-200/80 text-sky-800 text-xs font-semibold shadow-xs">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/80 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-sky-800 dark:text-sky-300 text-xs font-semibold shadow-xs">
               <span className="flex h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
               <span>Next-Gen Travel Intelligence</span>
-              <span className="text-slate-400">•</span>
-              <span className="text-slate-600">Your Journey. Your Budget. Your Perfect Plan.</span>
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span className="text-slate-600 dark:text-slate-300">Your Journey. Your Budget. Your Perfect Plan.</span>
             </div>
 
             {/* Main Heading */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.12]">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
               Your Next Adventure, <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-500 dark:from-sky-400 dark:via-indigo-400 dark:to-teal-300">
                 Planned by AI.
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg sm:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
+            <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 font-normal leading-relaxed max-w-2xl mx-auto lg:mx-0">
               Discover personalized itineraries, smarter budgets, and unforgettable experiences — all tailored to your travel style.
             </p>
 
@@ -63,7 +63,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <button
                 onClick={onPlanTripClick}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-bold text-base shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2.5 group"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-bold text-base shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2.5 group cursor-pointer"
               >
                 <span>Plan My Trip</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -71,9 +71,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               <button
                 onClick={onTryDemoClick}
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white border-2 border-slate-200 hover:border-sky-300 text-slate-800 font-bold text-base shadow-xs hover:bg-sky-50/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 group cursor-pointer"
+                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 text-slate-800 dark:text-slate-100 font-bold text-base shadow-xs hover:bg-sky-50/50 dark:hover:bg-slate-700/60 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 group cursor-pointer"
               >
-                <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <div className="w-7 h-7 rounded-full bg-sky-100 dark:bg-slate-700 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:bg-sky-600 group-hover:text-white transition-colors">
                   <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                 </div>
                 <span>View Live Demo Dashboard</span>
@@ -81,34 +81,34 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
 
             {/* Trust & Stat Indicators */}
-            <div className="pt-6 border-t border-slate-200/80 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0 text-left">
+            <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0 text-left">
               <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-xl bg-sky-100/70 text-sky-700 shrink-0">
+                <div className="p-2 rounded-xl bg-sky-100/70 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 shrink-0">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Personalized Plans</div>
-                  <div className="text-[11px] text-slate-500">100% Customized</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Personalized Plans</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">100% Customized</div>
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-xl bg-indigo-100/70 text-indigo-700 shrink-0">
+                <div className="p-2 rounded-xl bg-indigo-100/70 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 shrink-0">
                   <Wallet className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">Smart Budgeting</div>
-                  <div className="text-[11px] text-slate-500">Zero Guesswork</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Smart Budgeting</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Zero Guesswork</div>
                 </div>
               </div>
 
               <div className="flex items-start gap-2.5">
-                <div className="p-2 rounded-xl bg-teal-100/70 text-teal-700 shrink-0">
+                <div className="p-2 rounded-xl bg-teal-100/70 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">AI Powered</div>
-                  <div className="text-[11px] text-slate-500">Instant Schedule</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">AI Powered</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Instant Schedule</div>
                 </div>
               </div>
             </div>
@@ -120,7 +120,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="absolute inset-0 bg-gradient-to-tr from-sky-400 to-indigo-500 rounded-3xl blur-2xl opacity-20 -rotate-2 scale-95" />
 
             {/* Travel Showcase Card */}
-            <div className="relative bg-white/95 backdrop-blur-md rounded-3xl p-6 border border-slate-100 shadow-2xl space-y-5">
+            <div className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-2xl space-y-5 transition-colors">
               
               {/* Card Header with Destination Image Banner */}
               <div className="relative h-48 rounded-2xl overflow-hidden bg-gradient-to-br from-teal-400 via-sky-500 to-indigo-600 shadow-md">
@@ -128,10 +128,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-black/60" />
                 
                 {/* Floating Destination Badge */}
-                <div className="absolute top-3.5 left-3.5 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm text-xs font-bold text-slate-900">
+                <div className="absolute top-3.5 left-3.5 flex items-center gap-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm text-xs font-bold text-slate-900 dark:text-white">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
                   <span>Goa, India</span>
-                  <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded-md font-semibold">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded-md font-semibold">
                     Popular
                   </span>
                 </div>
@@ -160,49 +160,49 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* Quick Trip Snapshot Specs */}
               <div className="grid grid-cols-3 gap-2.5 text-center">
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium">Duration</div>
-                  <div className="text-sm font-bold text-slate-800 flex items-center justify-center gap-1 mt-0.5">
-                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-400 font-medium">Duration</div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center gap-1 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                     <span>3 Days</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium">Travelers</div>
-                  <div className="text-sm font-bold text-slate-800 flex items-center justify-center gap-1 mt-0.5">
-                    <Users className="w-3.5 h-3.5 text-indigo-600" />
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-400 font-medium">Travelers</div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center gap-1 mt-0.5">
+                    <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                     <span>2 (Couple)</span>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <div className="text-[11px] text-slate-400 font-medium">Pace</div>
-                  <div className="text-sm font-bold text-slate-800 flex items-center justify-center gap-1 mt-0.5">
-                    <Compass className="w-3.5 h-3.5 text-teal-600" />
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/80">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-400 font-medium">Pace</div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center gap-1 mt-0.5">
+                    <Compass className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                     <span>Balanced</span>
                   </div>
                 </div>
               </div>
 
               {/* Sample Day Breakdown Teaser */}
-              <div className="space-y-2 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+              <div className="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
                   <span>SAMPLE AI TIMETABLE</span>
-                  <span className="text-sky-600 flex items-center gap-1">
+                  <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     Auto-Optimized
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-sky-50/70 border border-sky-100/80 text-xs">
-                    <span className="font-bold text-sky-800 px-2 py-0.5 rounded-md bg-white border border-sky-200">Day 1</span>
-                    <span className="text-slate-700 font-medium truncate">Anjuna Flea Market & Sunset at Curlies Beach</span>
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/40 border border-sky-100/80 dark:border-sky-900/60 text-xs">
+                    <span className="font-bold text-sky-800 dark:text-sky-300 px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-sky-200 dark:border-sky-800">Day 1</span>
+                    <span className="text-slate-700 dark:text-slate-200 font-medium truncate">Anjuna Flea Market & Sunset at Curlies Beach</span>
                   </div>
-                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100/80 text-xs">
-                    <span className="font-bold text-indigo-800 px-2 py-0.5 rounded-md bg-white border border-indigo-200">Day 2</span>
-                    <span className="text-slate-700 font-medium truncate">Old Goa Latin Quarter, Spice Plantation & Water Sports</span>
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100/80 dark:border-indigo-900/60 text-xs">
+                    <span className="font-bold text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800">Day 2</span>
+                    <span className="text-slate-700 dark:text-slate-200 font-medium truncate">Old Goa Latin Quarter, Spice Plantation & Water Sports</span>
                   </div>
                 </div>
               </div>

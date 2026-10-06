@@ -16,6 +16,7 @@ export type Interest =
   | 'Photography';
 
 export interface TripFormData {
+  startingPoint?: string;
   destination: string;
   startDate: string;
   numberOfDays: number;
@@ -34,6 +35,7 @@ export interface TripFormData {
 export interface SavedTrip {
   id: string;
   createdAt: string;
+  startingPoint?: string;
   destination: string;
   durationDays: number;
   travelers: number;

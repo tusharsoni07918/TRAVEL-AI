@@ -101,6 +101,7 @@ function validateItinerarySchema(data: any, expectedDays: number): { valid: bool
 
 // Destination-aware high fidelity itinerary builder for TripGenie AI
 function buildContextualItinerary(params: {
+  startingPoint?: string;
   destination: string;
   startDate: string;
   numberOfDays: number;
@@ -116,6 +117,7 @@ function buildContextualItinerary(params: {
   additionalRequirements: string;
 }) {
   const {
+    startingPoint,
     destination,
     numberOfDays,
     budget,
@@ -129,17 +131,22 @@ function buildContextualItinerary(params: {
   } = params;
 
   const destLower = destination.toLowerCase();
+  const startPtClean = (startingPoint || '').trim();
+  const isSameCity = Boolean(startPtClean && destLower.includes(startPtClean.toLowerCase()) || (startPtClean && startPtClean.toLowerCase().includes(destLower)));
+  const hasIntercityTravel = Boolean(startPtClean && !isSameCity);
+
   const isGoa = destLower.includes('goa');
+  const isManali = destLower.includes('manali');
   const isBali = destLower.includes('bali');
   const isParis = destLower.includes('paris');
   const isTokyo = destLower.includes('tokyo');
 
-  // Breakdown proportions
-  const accommodationShare = Math.round(budget * 0.38);
-  const foodShare = Math.round(budget * 0.28);
-  const transportShare = Math.round(budget * 0.16);
+  // Breakdown proportions (adjust slightly for intercity travel if applicable)
+  const accommodationShare = Math.round(budget * (hasIntercityTravel ? 0.35 : 0.38));
+  const foodShare = Math.round(budget * (hasIntercityTravel ? 0.25 : 0.28));
+  const transportShare = Math.round(budget * (hasIntercityTravel ? 0.22 : 0.16));
   const activitiesShare = Math.round(budget * 0.12);
-  const miscShare = Math.round(budget * 0.06);
+  const miscShare = Math.round(budget * (hasIntercityTravel ? 0.06 : 0.06));
 
   const dailyBudget = Math.round(budget / numberOfDays);
 
@@ -157,9 +164,15 @@ function buildContextualItinerary(params: {
 
     if (isGoa) {
       if (i === 1) {
-        dayTitle = 'North Goa Coastal Welcome & Sunset at Curlies';
-        morningAct = 'Arrival, Hotel Check-in & Vagator Cliff Walk';
-        morningDesc = 'Settle into your accommodation, unpack, and take an easy stroll along the Chapora red cliffs.';
+        dayTitle = hasIntercityTravel 
+          ? `Arrival from ${startPtClean.split(',')[0]} & North Goa Coastal Welcome` 
+          : 'North Goa Coastal Welcome & Sunset at Curlies';
+        morningAct = hasIntercityTravel
+          ? `Departure from ${startPtClean.split(',')[0]} & Goa Check-in`
+          : 'Arrival, Hotel Check-in & Vagator Cliff Walk';
+        morningDesc = hasIntercityTravel
+          ? `Transit from ${startPtClean} to Goa (estimated travel time ~2.5h flight / train). Settle into hotel, refresh, and take a relaxed stroll along Vagator cliff.`
+          : 'Settle into your accommodation, unpack, and take an easy stroll along the Chapora red cliffs.';
         afternoonAct = 'Anjuna Flea Market & Beachside Relaxation';
         afternoonDesc = 'Browse bohemian handicrafts, beach apparel, and enjoy refreshing coconut water by the shore.';
         eveningAct = 'Sunset Views at Anjuna & Evening Seafood Feast';
@@ -174,6 +187,15 @@ function buildContextualItinerary(params: {
         eveningAct = 'Mandovi Sunset River Cruise & Live Folk Dance';
         eveningDesc = 'Enjoy scenic backwater breeze with traditional music and night vistas of Panaji.';
         foodRec = 'Viva Panjim in Fontainhas (Authentic Goan curry and regional vegetable stew)';
+      } else if (i === numberOfDays && hasIntercityTravel) {
+        dayTitle = `South Goa Serenity & Return Departure to ${startPtClean.split(',')[0]}`;
+        morningAct = 'Palolem Beach Kayaking & Souvenir Shopping';
+        morningDesc = 'Glide along calm turquoise waters and pick up local cashews, feni, and handcrafted souvenirs.';
+        afternoonAct = 'Cabo de Rama Scenic Lookout & Late Lunch';
+        afternoonDesc = 'Take in panoramic cliffside ocean vistas before heading toward the airport / railway junction.';
+        eveningAct = `Departure & Return Journey to ${startPtClean.split(',')[0]}`;
+        eveningDesc = `Conclude your Goa vacation with smooth return transit back to ${startPtClean}.`;
+        foodRec = 'Martin\'s Corner (Celebrated Goan hospitality with extensive vegetarian and seafood menu)';
       } else if (i === 3) {
         dayTitle = 'South Goa Serenity & Water Sports Excursion';
         morningAct = 'Palolem Beach Kayaking & Butterfly Beach Boat Trip';
@@ -193,11 +215,52 @@ function buildContextualItinerary(params: {
         eveningDesc = 'Eclectic live music, artisan stalls, and open-air food courts.';
         foodRec = 'Thalassa Siolim (Scenic waterfront dining with Mediterranean and local delicacies)';
       }
+    } else if (isManali) {
+      if (i === 1) {
+        dayTitle = hasIntercityTravel 
+          ? `Journey from ${startPtClean.split(',')[0]} to Manali & Mall Road Leisure` 
+          : 'Manali Arrival & Mall Road Evening Walk';
+        morningAct = hasIntercityTravel
+          ? `Travel from ${startPtClean.split(',')[0]} to Manali Valley`
+          : 'Arrival, Hotel Check-in & Acclimatization';
+        morningDesc = hasIntercityTravel
+          ? `Scenic mountain transit arriving in Manali. Unpack at hotel and relax by the Beas river.`
+          : 'Check in to mountain resort, unpack, and enjoy fresh Himalayan mountain air.';
+        afternoonAct = 'Hadimba Temple & Van Vihar Pine Forest';
+        afternoonDesc = 'Visit the 16th-century wooden pagoda temple nestled inside towering deodar cedar trees.';
+        eveningAct = 'Mall Road Café Stroll & Tibetan Market';
+        eveningDesc = 'Explore vibrant local handicrafts, steamed momos, and cozy fireside mountain cafes.';
+        foodRec = 'Chopsticks / Café 1947 (Authentic Himalayan trout, Tibetan delicacies & vegetarian thalis)';
+      } else if (i === 2) {
+        dayTitle = 'Solang Valley Snow Excursions & Paragliding';
+        morningAct = 'Solang Valley Cable Car (Ropeway) & Snow Point';
+        morningDesc = 'Panoramic Himalayan alpine vistas and thrilling snow activities.';
+        afternoonAct = 'Atal Tunnel Drive & Sissu Waterfall Vistas';
+        afternoonDesc = 'Pass through the engineering marvel into Lahaul valley to view glacial streams.';
+        eveningAct = 'Old Manali Apple Orchards & Live Music Cafés';
+        eveningDesc = 'Bohemian vibe with acoustic live music and craft herbal tea.';
+        foodRec = 'Lazy Dog Lounge / Dylan’s Toasted and Roasted Coffee House';
+      } else {
+        dayTitle = `Day ${i}: Jogini Waterfalls Trek & Vashisht Hot Springs`;
+        morningAct = 'Scenic Trek to Jogini Waterfalls';
+        morningDesc = 'Gentle morning nature hike offering cascading water views against pine peaks.';
+        afternoonAct = 'Vashisht Natural Sulphur Hot Springs & Village';
+        afternoonDesc = 'Rejuvenating dip in ancient hot water springs and village stone temple visit.';
+        eveningAct = 'Sunset Over the Beas River & Dinner';
+        eveningDesc = 'Relaxing riverside dinner with warm regional mountain hospitality.';
+        foodRec = 'Johnson’s Café (Famous wood-fired pizzas and local trout specialties)';
+      }
     } else if (isParis) {
       if (i === 1) {
-        dayTitle = 'Iconic Landmarks: Eiffel Tower & Seine Sunset Cruise';
-        morningAct = 'Trocadéro Vistas & Champ de Mars Stroll';
-        morningDesc = 'Snap iconic sunrise photos of the Eiffel Tower before crowds gather.';
+        dayTitle = hasIntercityTravel 
+          ? `Arrival in Paris from ${startPtClean.split(',')[0]} & Seine Sunset Cruise`
+          : 'Iconic Landmarks: Eiffel Tower & Seine Sunset Cruise';
+        morningAct = hasIntercityTravel 
+          ? `Arrival from ${startPtClean.split(',')[0]} & Hotel Check-in`
+          : 'Trocadéro Vistas & Champ de Mars Stroll';
+        morningDesc = hasIntercityTravel 
+          ? `Transfer into central Paris, hotel check-in, and espresso at a sidewalk bistro.`
+          : 'Snap iconic sunrise photos of the Eiffel Tower before crowds gather.';
         afternoonAct = 'Musée d\'Orsay & Tuileries Garden';
         afternoonDesc = 'Marvel at Impressionist masterpieces by Monet, Van Gogh, and Renoir.';
         eveningAct = 'Seine River Sightseeing Cruise at Twilight';
@@ -224,9 +287,15 @@ function buildContextualItinerary(params: {
       }
     } else if (isBali) {
       if (i === 1) {
-        dayTitle = 'Ubud Cultural Heart & Sacred Monkey Forest';
-        morningAct = 'Monkey Forest Sanctuary & Lotus Pond Walk';
-        morningDesc = 'Ancient jungle temples inhabited by friendly Balinese macaques.';
+        dayTitle = hasIntercityTravel
+          ? `Landing in Bali from ${startPtClean.split(',')[0]} & Ubud Sanctuary`
+          : 'Ubud Cultural Heart & Sacred Monkey Forest';
+        morningAct = hasIntercityTravel
+          ? `Arrival in Denpasar & Ubud Scenic Transfer`
+          : 'Monkey Forest Sanctuary & Lotus Pond Walk';
+        morningDesc = hasIntercityTravel
+          ? `Airport transfer through lush tropical greenery to your Ubud resort.`
+          : 'Ancient jungle temples inhabited by friendly Balinese macaques.';
         afternoonAct = 'Tegallalang Rice Terraces & Jungle Swing';
         afternoonDesc = 'Emerald terraced hillsides with traditional Subak irrigation systems.';
         eveningAct = 'Ubud Royal Palace Traditional Legong Dance';
@@ -244,9 +313,15 @@ function buildContextualItinerary(params: {
       }
     } else {
       // General dynamic contextual day
-      dayTitle = `Day ${i}: ${destination} Heritage & ${interests[i % interests.length] || 'Scenic'} Tour`;
-      morningAct = `${destination} Historic Center & Morning Landmark Walk`;
-      morningDesc = `Begin your day discovering the central plaza, architectural icons, and local street scenes of ${destination}.`;
+      dayTitle = hasIntercityTravel && i === 1
+        ? `Day 1: Journey from ${startPtClean.split(',')[0]} to ${destination} & First Evening`
+        : `Day ${i}: ${destination} Heritage & ${interests[i % interests.length] || 'Scenic'} Tour`;
+      morningAct = hasIntercityTravel && i === 1
+        ? `Departure from ${startPtClean.split(',')[0]} & Arrival in ${destination}`
+        : `${destination} Historic Center & Morning Landmark Walk`;
+      morningDesc = hasIntercityTravel && i === 1
+        ? `Transfer from ${startPtClean} to ${destination}. Check into hotel, unpack, and prepare for local sightseeing.`
+        : `Begin your day discovering the central plaza, architectural icons, and local street scenes of ${destination}.`;
       afternoonAct = `${interests[0] || 'Cultural'} Attraction & Neighborhood Discovery`;
       afternoonDesc = `Explore primary galleries, artisan craft districts, and scenic gardens recommended for ${travelPace.toLowerCase()} travelers.`;
       eveningAct = `Panoramic Sunset Lookout & Night Promenade`;
@@ -294,9 +369,18 @@ function buildContextualItinerary(params: {
     });
   }
 
+  const summaryPrefix = hasIntercityTravel
+    ? `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} journey from ${startPtClean} to ${destination}`
+    : `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} itinerary through ${destination}`;
+
+  const transitGuidance = hasIntercityTravel
+    ? `Intercity travel from ${startPtClean} to ${destination}: Estimated transportation cost approx. ${currency} ${transportShare.toLocaleString()} (based on standard flight/rail transit estimates; actual ticket prices depend on booking timing).`
+    : `Local ${preferredTransportation.toLowerCase()} transit for seamless intra-city exploration.`;
+
   return {
+    startingPoint: startPtClean || undefined,
     destination,
-    tripSummary: `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} itinerary through ${destination}, curated for a ${travelPace.toLowerCase()} pace and focusing on ${interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${accommodationPreference} accommodations, ${preferredTransportation.toLowerCase()} transit).`,
+    tripSummary: `${summaryPrefix}, curated for a ${travelPace.toLowerCase()} pace and focusing on ${interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${accommodationPreference} accommodations, ${preferredTransportation.toLowerCase()} transit).`,
     totalEstimatedCost: budget,
     currency,
     budgetBreakdown: {
@@ -313,8 +397,9 @@ function buildContextualItinerary(params: {
       `Convenient neighborhood accommodation with easy access to ${interests[0] || 'primary sights'}`
     ],
     transportationTips: [
+      transitGuidance,
       `Prefer ${preferredTransportation.toLowerCase()} for the best balance of speed and cost efficiency`,
-      'Pre-install rideshare and local transit transit apps before landing',
+      'Pre-install rideshare and local transit apps before landing',
       'Validate multi-day transit passes to save up to 30% on intra-city hops'
     ],
     travelTips: [
@@ -378,6 +463,7 @@ app.get('/api/model-status', (_req, res) => {
 // Primary POST /api/generate-itinerary
 app.post('/api/generate-itinerary', async (req, res) => {
   const {
+    startingPoint,
     destination,
     startDate,
     numberOfDays,
@@ -397,6 +483,7 @@ app.post('/api/generate-itinerary', async (req, res) => {
   const parsedDays = Number(numberOfDays);
   const parsedTravelers = Number(numberOfTravelers);
   const parsedBudget = Number(budget);
+  const cleanStartingPoint = startingPoint && typeof startingPoint === 'string' ? startingPoint.trim() : '';
 
   if (!destination || !destination.trim()) {
     return res.status(400).json({
@@ -475,11 +562,12 @@ app.post('/api/generate-itinerary', async (req, res) => {
 
   // 3. Prepare Prompt for Gemma 4 31B IT
   const systemInstruction = 
-    "You are TripGenie AI, an expert personalized travel planner. Create practical, budget-conscious and personalized travel itineraries based strictly on the user's preferences.";
+    "You are TripGenie AI, an expert personalized travel planner powered by Gemma 4 31B IT. Create practical, budget-conscious and personalized travel itineraries based strictly on the user's preferences.";
 
   const userPrompt = `
 Generate a personalized travel itinerary using the following user preferences:
 
+- Starting Point / Departure: ${cleanStartingPoint ? cleanStartingPoint : 'Starting point was not provided. Do not invent one.'}
 - Destination: ${destination}
 - Start Date: ${startDate}
 - Trip Duration: ${parsedDays} Days
@@ -496,13 +584,17 @@ INSTRUCTIONS:
 1. Respect the user's total budget of ${currency} ${parsedBudget}. Treat all costs as estimates.
 2. The 'days' array MUST contain EXACTLY ${parsedDays} day objects (Day 1 to Day ${parsedDays}).
 3. Avoid excessive travel times between stops and create realistic activity timings.
-4. If the budget is tight for ${destination}, mention practical budget-saving alternatives in the trip summary.
-5. Do NOT include markdown code blocks, do NOT write \`\`\`json or \`\`\`. Output ONLY the raw valid JSON object.
+4. If Starting Point is provided (${cleanStartingPoint || 'N/A'}) and differs from Destination, estimate realistic intercity travel time and include an estimated transportation cost (use phrasing like "Estimated transportation cost" or "Approximate travel cost", never "Guaranteed fare" or "Confirmed ticket price"). Account for Day 1 arrival time and final-day return departure.
+5. If Starting Point is the same city as Destination, treat it as the traveler's current location with local activities.
+6. If Starting Point is empty, do not invent one. Plan directly from the destination.
+7. If the budget is tight for ${destination}, mention practical budget-saving alternatives in the trip summary.
+8. Do NOT include markdown code blocks, do NOT write \`\`\`json or \`\`\`. Output ONLY the raw valid JSON object.
 
 REQUIRED JSON STRUCTURE:
 {
+  ${cleanStartingPoint ? `"startingPoint": "${cleanStartingPoint}",` : ''}
   "destination": "${destination}",
-  "tripSummary": "Concise overview highlighting the itinerary vibe and budget strategy",
+  "tripSummary": "Concise overview highlighting the itinerary vibe, route, and budget strategy",
   "totalEstimatedCost": ${parsedBudget},
   "currency": "${currency}",
   "budgetBreakdown": {
@@ -517,7 +609,7 @@ REQUIRED JSON STRUCTURE:
       "day": 1,
       "title": "Title for Day 1",
       "morning": {
-        "activity": "Morning Landmark/Activity",
+        "activity": "Morning Landmark/Activity or Arrival",
         "description": "Specific details and tips",
         "estimatedCost": 0,
         "duration": "2-3 hours"
@@ -606,16 +698,10 @@ REQUIRED JSON STRUCTURE:
       });
     }
 
-    // Attach metadata
-    parsedJson.modelUsed = TARGET_MODEL;
-    parsedJson.generatedAt = new Date().toISOString();
-
-    return res.json({
-      success: true,
-      itinerary: parsedJson
-    });
-
-    // If gemma-4-31b-it call succeeded, return its parsed response
+    // Attach metadata and startingPoint
+    if (cleanStartingPoint) {
+      parsedJson.startingPoint = cleanStartingPoint;
+    }
     parsedJson.modelUsed = TARGET_MODEL;
     parsedJson.generatedAt = new Date().toISOString();
 
@@ -629,6 +715,7 @@ REQUIRED JSON STRUCTURE:
 
     // Build intelligent, contextual itinerary matching exact schema
     const fallbackItinerary = buildContextualItinerary({
+      startingPoint: cleanStartingPoint || undefined,
       destination,
       startDate,
       numberOfDays: parsedDays,
@@ -662,6 +749,11 @@ function applyContextualCustomization(
   const dest = cloned.destination || plannerData.destination || 'Destination';
   const curr = cloned.currency || plannerData.currency || 'INR';
 
+  // Preserve startingPoint
+  if (plannerData?.startingPoint || currentItinerary?.startingPoint) {
+    cloned.startingPoint = plannerData?.startingPoint || currentItinerary?.startingPoint;
+  }
+
   let customSummaryTag = `Customized based on: "${instruction}"`;
 
   // 1. Cheaper / Budget / Free activities
@@ -677,7 +769,7 @@ function applyContextualCustomization(
       cloned.budgetBreakdown.miscellaneous = Math.round((cloned.budgetBreakdown.miscellaneous || 0) * 0.6);
     }
     // Update daily plans with free/low-cost highlights
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.dailyEstimatedCost = Math.round((day.dailyEstimatedCost || 2000) * discount);
       if (day.afternoon) {
         day.afternoon.activity = `Self-Guided Walking Tour & Public Vistas in ${dest}`;
@@ -698,7 +790,7 @@ function applyContextualCustomization(
   // 2. Relaxing / Leisure / Slow pace
   else if (text.includes('relax') || text.includes('chill') || text.includes('slow') || text.includes('leisure')) {
     customSummaryTag = 'Rebalanced for a peaceful, tranquil pace with generous downtime and scenic pauses.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Relaxed Vistas & Gentle Exploration`;
       if (day.morning) {
         day.morning.activity = `Leisurely Morning & Scenic Waterfront Stroll`;
@@ -715,7 +807,7 @@ function applyContextualCustomization(
   // 3. Adventure / Outdoors / Thrill
   else if (text.includes('adventure') || text.includes('thrill') || text.includes('outdoor') || text.includes('hike') || text.includes('trek')) {
     customSummaryTag = 'Infused with high-energy outdoor excursions, scenic trails, and active adventures.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Outdoor Exploration & Adventure Trails`;
       if (day.morning) {
         day.morning.activity = `Active Nature Trek & Panoramic Summit View`;
@@ -730,7 +822,7 @@ function applyContextualCustomization(
   // 4. Food / Dining / Culinary
   else if (text.includes('food') || text.includes('eat') || text.includes('culinary') || text.includes('dining')) {
     customSummaryTag = 'Elevated with signature culinary tastings, bustling food markets, and authentic regional dining.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       if (day.afternoon) {
         day.afternoon.activity = `Historic Neighborhood Street Food Walk`;
         day.afternoon.description = `Guided discovery of iconic local bites, artisan bakeries, and heritage food stalls.`;
@@ -745,7 +837,7 @@ function applyContextualCustomization(
   // 5. Cultural / Heritage / Art
   else if (text.includes('cultur') || text.includes('heritage') || text.includes('art') || text.includes('history')) {
     customSummaryTag = 'Enriched with deeper heritage discovery, ancient architecture, and cultural museums.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Cultural Immersion & Heritage Trails`;
       if (day.morning) {
         day.morning.activity = `Historic Monuments & UNESCO Heritage Architecture`;
@@ -760,7 +852,7 @@ function applyContextualCustomization(
   // 6. Photography / Photo spots
   else if (text.includes('photo') || text.includes('picture') || text.includes('camera') || text.includes('view')) {
     customSummaryTag = 'Curated with the premier golden-hour lookouts and iconic photography locations.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       if (day.morning) {
         day.morning.activity = `Sunrise / Golden Hour Photography at Iconic Landmark`;
         day.morning.description = `Capture spectacular soft lighting and uncrowded architectural viewpoints.`;
@@ -774,7 +866,7 @@ function applyContextualCustomization(
   // 7. Travel time / Transit
   else if (text.includes('transit') || text.includes('travel time') || text.includes('commute')) {
     customSummaryTag = 'Optimized geographically into localized walking loops to minimize commute times.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Concentrated District Exploration (Low Transit)`;
       if (day.morning) day.morning.duration = '1.5 hours (Within 10 min walk)';
       if (day.afternoon) day.afternoon.duration = '2 hours (Within walking cluster)';
@@ -789,7 +881,7 @@ function applyContextualCustomization(
   // 8. Family friendly
   else if (text.includes('family') || text.includes('kid') || text.includes('children')) {
     customSummaryTag = 'Tailored with family-friendly attractions, safe shallow shores, and engaging group activities.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Family Highlights & Interactive Parks`;
       if (day.morning) {
         day.morning.activity = `Interactive Nature Center & Gentle Coastal Discovery`;
@@ -805,7 +897,7 @@ function applyContextualCustomization(
   // 9. Couple friendly / Romantic
   else if (text.includes('couple') || text.includes('romant') || text.includes('honeymoon')) {
     customSummaryTag = 'Curated for romance with intimate sunset spots, candlelit dining, and serene coastal views.';
-    cloned.days?.forEach((day: any, idx: number) => {
+    cloned.days?.forEach((day: any) => {
       day.title = `Day ${day.day}: Romantic Escapes & Twilight Magic`;
       if (day.evening) {
         day.evening.activity = `Private Golden Hour Viewpoint & Candlelit Dining`;
@@ -857,6 +949,7 @@ app.post('/api/customize-itinerary', async (req, res) => {
 
   const expectedDays = currentItinerary.days.length;
   const apiKey = process.env.GEMINI_API_KEY;
+  const effectiveStartingPoint = currentItinerary.startingPoint || plannerData?.startingPoint || '';
 
   // If API key is available, call Gemma 4 31B IT
   if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
@@ -873,11 +966,12 @@ app.post('/api/customize-itinerary', async (req, res) => {
       const systemInstruction = 
         "You are TripGenie AI, an expert personalized travel planner powered by Gemma 4 31B IT. " +
         "You customize and fine-tune existing travel itineraries. Modify ONLY the relevant parts to satisfy the user's specific instruction. " +
-        "Preserve the destination and duration unless explicitly requested. Always return valid raw JSON matching the exact itinerary schema without markdown fences.";
+        "Preserve the starting point, destination and duration unless explicitly requested. Always return valid raw JSON matching the exact itinerary schema without markdown fences.";
 
       const prompt = `
 You are fine-tuning an existing travel itinerary for TripGenie AI using Gemma 4 31B IT.
 
+${effectiveStartingPoint ? `STARTING POINT: ${effectiveStartingPoint}` : 'STARTING POINT: Not specified'}
 DESTINATION: ${currentItinerary.destination}
 TOTAL DURATION: ${expectedDays} Days
 ORIGINAL USER PREFERENCES:
@@ -893,7 +987,7 @@ ${JSON.stringify(currentItinerary, null, 2)}
 
 INSTRUCTIONS:
 1. Modify ONLY the relevant parts corresponding to the user's request: "${customInstruction}".
-2. Preserve the destination (${currentItinerary.destination}) and duration (${expectedDays} days).
+2. Preserve the starting point (${effectiveStartingPoint || 'N/A'}), destination (${currentItinerary.destination}) and duration (${expectedDays} days).
 3. The 'days' array MUST contain EXACTLY ${expectedDays} day objects.
 4. If the request is to "Make it cheaper" or "Add free/low-cost activities", reduce totalEstimatedCost and daily costs, and replace costly items with high-rated budget/free alternatives.
 5. If the request is for specific interests (food, adventure, relaxing, culture, photography, family, couple), adjust the activities, descriptions, and food recommendations to clearly deliver on that theme.
@@ -921,6 +1015,9 @@ INSTRUCTIONS:
 
       const validation = validateItinerarySchema(parsedJson, expectedDays);
       if (validation.valid) {
+        if (effectiveStartingPoint) {
+          parsedJson.startingPoint = effectiveStartingPoint;
+        }
         parsedJson.modelUsed = TARGET_MODEL;
         parsedJson.generatedAt = new Date().toISOString();
         return res.json({

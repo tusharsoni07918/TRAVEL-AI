@@ -65,19 +65,19 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
   ];
 
   return (
-    <section id="features" className="py-20 lg:py-28 bg-white">
+    <section id="features" className="py-20 lg:py-28 bg-white dark:bg-slate-900/90 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold uppercase tracking-wider mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200/60 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold uppercase tracking-wider mb-3">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Built For Modern Explorers</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Features Designed for Stress-Free Travel
           </h2>
-          <p className="mt-3 text-base sm:text-lg text-slate-600">
+          <p className="mt-3 text-base sm:text-lg text-slate-600 dark:text-slate-300">
             Everything you need to orchestrate the perfect getaway without spending 20 hours reading travel blogs.
           </p>
         </div>
@@ -89,33 +89,33 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-slate-50/60 rounded-3xl p-8 border border-slate-100 hover:border-slate-200 shadow-xs hover:shadow-xl hover:shadow-slate-100 transition-all hover:-translate-y-1 flex flex-col justify-between group"
+                className="bg-slate-50/60 dark:bg-slate-800/80 rounded-3xl p-8 border border-slate-100 dark:border-slate-700/80 hover:border-slate-200 dark:hover:border-slate-600 shadow-xs hover:shadow-xl dark:shadow-none hover:shadow-slate-100 transition-all hover:-translate-y-1 flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <div className={`w-12 h-12 rounded-2xl ${feature.color} flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform`}>
+                    <div className={`w-12 h-12 rounded-2xl ${feature.color} dark:bg-slate-700 flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white text-slate-500 border border-slate-100">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-300 border border-slate-100 dark:border-slate-600">
                       {feature.tag}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-sky-600 transition-colors">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                     {feature.title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
 
-                <div className="pt-6 mt-6 border-t border-slate-100/80 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-400">Included in Free Tier</span>
+                <div className="pt-6 mt-6 border-t border-slate-100/80 dark:border-slate-700/80 flex items-center justify-between text-xs font-semibold">
+                  <span className="text-slate-400 dark:text-slate-400">Included in Free Tier</span>
                   {feature.title === 'Saved Trips' ? (
                     <button
                       onClick={onMyTripsClick}
-                      className="text-sky-600 hover:text-sky-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform"
+                      className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform cursor-pointer"
                     >
                       <span>View Trips</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -123,7 +123,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({
                   ) : (
                     <button
                       onClick={onPlanTripClick}
-                      className="text-sky-600 hover:text-sky-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform"
+                      className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 group-hover:translate-x-1 transition-transform cursor-pointer"
                     >
                       <span>Try It</span>
                       <ArrowRight className="w-3.5 h-3.5" />

@@ -59,13 +59,18 @@ export const OfflinePassModal: React.FC<OfflinePassModalProps> = ({
                 <span className="text-[10px] font-black uppercase tracking-widest text-sky-200 block">
                   TripGenie AI • Offline Pass
                 </span>
-                <h3 className="text-xl font-black tracking-tight">{itinerary.destination} Travel Card</h3>
+                <h3 className="text-xl font-black tracking-tight">
+                  {(itinerary.startingPoint || plannerData.startingPoint) 
+                    ? `${(itinerary.startingPoint || plannerData.startingPoint || '').split(',')[0]} → ${itinerary.destination.split(',')[0]} Travel Card`
+                    : `${itinerary.destination} Travel Card`
+                  }
+                </h3>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition"
+              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

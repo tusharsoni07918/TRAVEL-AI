@@ -44,6 +44,7 @@ import { Itinerary, GenerationError } from '../types/itinerary';
 import { requestGemmaItinerary } from '../services/itineraryApi';
 import { createSampleItinerary } from '../services/sampleItinerary';
 import { ErrorAlert } from './ErrorAlert';
+import { DestinationAutocomplete } from './DestinationAutocomplete';
 
 interface TripPlannerProps {
   formData: TripFormData;
@@ -72,6 +73,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
   const popularDestinations = [
     'Goa',
+    'Manali',
     'Bali',
     'Paris',
     'Tokyo',
@@ -79,6 +81,13 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
     'New York',
     'Rome',
     'Santorini'
+  ];
+
+  const popularStartingPoints: string[] = [
+    'Bhopal, Madhya Pradesh, India',
+    'Delhi, India',
+    'Mumbai, Maharashtra, India',
+    'Bengaluru, Karnataka, India'
   ];
 
   const travelTypes: { type: TravelType; label: string; desc: string }[] = [
@@ -199,6 +208,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
         const newSavedTrip: SavedTrip = {
           id: `trip-${Date.now()}`,
           createdAt: new Date().toISOString(),
+          startingPoint: response.itinerary.startingPoint || formData.startingPoint,
           destination: response.itinerary.destination,
           durationDays: response.itinerary.days.length,
           travelers: Number(formData.numberOfTravelers),
@@ -235,27 +245,27 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
   };
 
   return (
-    <section id="planner" className="py-16 lg:py-24 bg-white relative">
+    <section id="planner" className="py-16 lg:py-24 bg-white dark:bg-slate-950 relative transition-colors">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-bold uppercase tracking-wider mb-3">
-            <Cpu className="w-3.5 h-3.5 text-indigo-600" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200/60 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold uppercase tracking-wider mb-3">
+            <Cpu className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
             <span>Powered by Gemma 4 31B IT</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Plan Your Tailored Travel Itinerary
           </h2>
-          <p className="mt-3 text-base text-slate-600">
-            Tell TripGenie AI your travel preferences, budget, and favorite pace. Powered by Google's <strong className="text-slate-900">gemma-4-31b-it</strong>.
+          <p className="mt-3 text-base text-slate-600 dark:text-slate-300">
+            Tell TripGenie AI your travel preferences, budget, and favorite pace. Powered by Google's <strong className="text-slate-900 dark:text-white">gemma-4-31b-it</strong>.
           </p>
 
           {/* Demo loaded banner */}
           {demoLoadedNotification && (
-            <div className="mt-4 p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-              <Check className="w-4 h-4 text-teal-600 shrink-0" />
-              <span>Demo parameters loaded for Goa (3 Days, 2 Travelers, ₹15,000)! Click "Generate My Itinerary" below to run with Gemma 4 31B.</span>
+            <div className="mt-4 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-semibold flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+              <span>Demo parameters loaded for Bhopal → Goa (3 Days, 2 Travelers, ₹15,000)! Click "Generate My Itinerary" below to run with Gemma 4 31B.</span>
             </div>
           )}
         </div>
@@ -271,40 +281,89 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
         )}
 
         {/* Planner Card Container */}
-        <div className="bg-slate-50/70 border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-100">
+        <div className="bg-slate-50/70 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl dark:shadow-none shadow-slate-100 transition-colors">
           
           <div className="space-y-10">
 
             {/* Section 1: Destination & Dates */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <span className="w-7 h-7 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
-                <h3 className="text-base font-bold text-slate-900">Destination & Schedule</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Destination & Schedule</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                {/* Destination Input */}
+                {/* Starting Point / Departure From (Optional) */}
                 <div className="md:col-span-6 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Starting Point / Departure From
+                    </label>
+                    <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                      Optional
+                    </span>
+                  </div>
+
+                  <DestinationAutocomplete
+                    value={formData.startingPoint || ''}
+                    onChange={(newStart) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        startingPoint: newStart
+                      }));
+                    }}
+                    isStartingPoint={true}
+                    icon={<MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                    placeholder="e.g. Bhopal, Madhya Pradesh, India"
+                  />
+
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
+                    Optional — helps AI estimate travel time and transportation costs.
+                  </p>
+
+                  {/* Quick starting hub chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mr-1">Hubs:</span>
+                    {popularStartingPoints.map((hub) => (
+                      <button
+                        key={hub}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, startingPoint: hub }));
+                        }}
+                        className={`text-[11px] px-2.5 py-1 rounded-full border transition font-medium cursor-pointer ${
+                          formData.startingPoint?.toLowerCase() === hub.toLowerCase()
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400'
+                        }`}
+                      >
+                        {hub.split(',')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Destination Input with Dropdown Autocomplete */}
+                <div className="md:col-span-6 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Destination <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.destination}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, destination: e.target.value }));
-                        if (errors.destination) setErrors(prev => ({ ...prev, destination: '' }));
-                      }}
-                      placeholder="e.g. Goa, Bali, Tokyo, Paris..."
-                      className={`w-full pl-10 pr-4 py-3 bg-white rounded-xl border text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 transition ${
-                        errors.destination 
-                          ? 'border-rose-400 focus:ring-rose-200' 
-                          : 'border-slate-200 focus:border-sky-500 focus:ring-sky-100'
-                      }`}
-                    />
-                  </div>
+                  
+                  <DestinationAutocomplete
+                    value={formData.destination}
+                    onChange={(newDest, meta) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        destination: newDest,
+                        ...(meta?.suggestedDays && (!prev.numberOfDays || prev.numberOfDays === 3) ? { numberOfDays: meta.suggestedDays } : {}),
+                        ...(meta?.currency && (!prev.currency || prev.currency === 'INR') ? { currency: meta.currency } : {})
+                      }));
+                      if (errors.destination) setErrors(prev => ({ ...prev, destination: '' }));
+                    }}
+                    error={errors.destination}
+                    placeholder="e.g. Goa, Manali, Bali, Paris..."
+                  />
+
                   {errors.destination && (
                     <p className="text-xs text-rose-500 font-medium flex items-center gap-1 mt-1">
                       <AlertCircle className="w-3.5 h-3.5" />
@@ -313,9 +372,9 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                   )}
 
                   {/* Quick destination chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
-                    <span className="text-[11px] text-slate-400 font-medium mr-1">Popular:</span>
-                    {popularDestinations.map((city) => (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mr-1">Popular:</span>
+                    {popularDestinations.slice(0, 4).map((city) => (
                       <button
                         key={city}
                         type="button"
@@ -323,13 +382,13 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                           setFormData(prev => ({ ...prev, destination: city }));
                           if (errors.destination) setErrors(prev => ({ ...prev, destination: '' }));
                         }}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border transition font-medium ${
+                        className={`text-[11px] px-2.5 py-1 rounded-full border transition font-medium cursor-pointer ${
                           formData.destination.toLowerCase() === city.toLowerCase()
                             ? 'bg-sky-600 text-white border-sky-600'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400'
                         }`}
                       >
-                        {city}
+                        {city.split(',')[0]}
                       </button>
                     ))}
                   </div>
@@ -337,11 +396,11 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Start Date */}
                 <div className="md:col-span-3 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Start Date <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <input
                       type="date"
                       value={formData.startDate}
@@ -350,10 +409,10 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         setFormData(prev => ({ ...prev, startDate: e.target.value }));
                         if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
                       }}
-                      className={`w-full pl-10 pr-3 py-3 bg-white rounded-xl border text-sm text-slate-900 focus:outline-none focus:ring-2 transition ${
+                      className={`w-full pl-10 pr-3 py-3 bg-white dark:bg-slate-800 rounded-xl border text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 transition ${
                         errors.startDate 
                           ? 'border-rose-400 focus:ring-rose-200' 
-                          : 'border-slate-200 focus:border-sky-500 focus:ring-sky-100'
+                          : 'border-slate-200 dark:border-slate-700 focus:border-sky-500 dark:focus:border-sky-400 focus:ring-sky-100 dark:focus:ring-sky-950'
                       }`}
                     />
                   </div>
@@ -367,14 +426,14 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Number of Days */}
                 <div className="md:col-span-3 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Duration (Days) <span className="text-rose-500">*</span>
                   </label>
-                  <div className="flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, numberOfDays: Math.max(1, Number(prev.numberOfDays) - 1) }))}
-                      className="p-3 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition"
+                      className="p-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                       aria-label="Decrease days"
                     >
                       <Minus className="w-4 h-4" />
@@ -385,12 +444,12 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                       max={30}
                       value={formData.numberOfDays}
                       onChange={(e) => setFormData(prev => ({ ...prev, numberOfDays: Math.max(1, parseInt(e.target.value) || 1) }))}
-                      className="w-full text-center py-3 text-sm font-bold text-slate-900 focus:outline-none"
+                      className="w-full text-center py-3 text-sm font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, numberOfDays: Math.min(30, Number(prev.numberOfDays) + 1) }))}
-                      className="p-3 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition"
+                      className="p-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                       aria-label="Increase days"
                     >
                       <Plus className="w-4 h-4" />
@@ -405,34 +464,34 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
             {/* Section 2: Travelers & Budget */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">2</span>
-                <h3 className="text-base font-bold text-slate-900">Travelers & Budget Parameters</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Travelers & Budget Parameters</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                 {/* Number of Travelers */}
                 <div className="md:col-span-4 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Number of Travelers <span className="text-rose-500">*</span>
                   </label>
-                  <div className="flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="flex items-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, numberOfTravelers: Math.max(1, Number(prev.numberOfTravelers) - 1) }))}
-                      className="p-3 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition"
+                      className="p-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                       aria-label="Decrease travelers"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <div className="w-full text-center py-3 text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5">
+                    <div className="w-full text-center py-3 text-sm font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">
                       <Users className="w-4 h-4 text-indigo-500" />
                       <span>{formData.numberOfTravelers} {Number(formData.numberOfTravelers) === 1 ? 'Traveler' : 'Travelers'}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, numberOfTravelers: Math.min(20, Number(prev.numberOfTravelers) + 1) }))}
-                      className="p-3 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition"
+                      className="p-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer"
                       aria-label="Increase travelers"
                     >
                       <Plus className="w-4 h-4" />
@@ -442,13 +501,13 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Currency Selection */}
                 <div className="md:col-span-3 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Currency <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.currency}
                     onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-                    className="w-full px-3 py-3 bg-white rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:outline-none focus:border-sky-500"
+                    className="w-full px-3 py-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 dark:focus:border-sky-400 cursor-pointer"
                   >
                     <option value="INR">₹ INR (Indian Rupee)</option>
                     <option value="USD">$ USD (US Dollar)</option>
@@ -461,11 +520,11 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Total Budget */}
                 <div className="md:col-span-5 space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Target Budget <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-500 text-sm">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-500 dark:text-slate-400 text-sm">
                       {formData.currency}
                     </span>
                     <input
@@ -477,10 +536,10 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         if (errors.budget) setErrors(prev => ({ ...prev, budget: '' }));
                       }}
                       placeholder="e.g. 15000, 25000..."
-                      className={`w-full pl-14 pr-4 py-3 bg-white rounded-xl border text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 transition ${
+                      className={`w-full pl-14 pr-4 py-3 bg-white dark:bg-slate-800 rounded-xl border text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 transition ${
                         errors.budget 
                           ? 'border-rose-400 focus:ring-rose-200' 
-                          : 'border-slate-200 focus:border-sky-500 focus:ring-sky-100'
+                          : 'border-slate-200 dark:border-slate-700 focus:border-sky-500 dark:focus:border-sky-400 focus:ring-sky-100 dark:focus:ring-sky-950'
                       }`}
                     />
                   </div>
@@ -495,7 +554,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
               {/* Travel Type Selectable Cards */}
               <div className="pt-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                   Travel Group Style <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -506,17 +565,17 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={t.type}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, travelType: t.type }))}
-                        className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                        className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
                           isSelected
-                            ? 'bg-sky-50/80 border-sky-500 ring-2 ring-sky-200 text-sky-900 shadow-xs'
-                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                            ? 'bg-sky-50/80 dark:bg-sky-950/60 border-sky-500 ring-2 ring-sky-200 dark:ring-sky-800 text-sky-900 dark:text-sky-200 shadow-xs'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-sm">{t.label}</span>
-                          {isSelected && <Check className="w-4 h-4 text-sky-600" />}
+                          {isSelected && <Check className="w-4 h-4 text-sky-600 dark:text-sky-400" />}
                         </div>
-                        <span className="text-[11px] text-slate-500 leading-tight">{t.desc}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">{t.desc}</span>
                       </button>
                     );
                   })}
@@ -526,14 +585,14 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
             {/* Section 3: Travel Pace & Interests */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <span className="w-7 h-7 rounded-lg bg-teal-600 text-white font-bold text-xs flex items-center justify-center">3</span>
-                <h3 className="text-base font-bold text-slate-900">Pace & Key Interests</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Pace & Key Interests</h3>
               </div>
 
               {/* Travel Pace */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                   Trip Pace <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -544,16 +603,16 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={p.pace}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, travelPace: p.pace }))}
-                        className={`p-3.5 rounded-xl border text-left transition flex items-center gap-3 ${
+                        className={`p-3.5 rounded-xl border text-left transition flex items-center gap-3 cursor-pointer ${
                           isSelected
-                            ? 'bg-teal-50/80 border-teal-500 ring-2 ring-teal-200 text-teal-900'
-                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                            ? 'bg-teal-50/80 dark:bg-teal-950/60 border-teal-500 ring-2 ring-teal-200 dark:ring-teal-800 text-teal-900 dark:text-teal-200'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200'
                         }`}
                       >
                         <span className="text-xl">{p.icon}</span>
                         <div>
                           <div className="font-bold text-sm">{p.label}</div>
-                          <div className="text-[11px] text-slate-500">{p.desc}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">{p.desc}</div>
                         </div>
                       </button>
                     );
@@ -563,7 +622,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
               {/* Interests Multi-Select */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                   Interests & Activities (Select All That Apply) <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -575,13 +634,13 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={opt.interest}
                         type="button"
                         onClick={() => handleInterestToggle(opt.interest)}
-                        className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2.5 transition ${
+                        className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2.5 transition cursor-pointer ${
                           isSelected
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                            : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
-                        <IconComponent className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-600'}`} />
+                        <IconComponent className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
                         <span>{opt.label}</span>
                         {isSelected && <Check className="w-3.5 h-3.5 ml-auto text-indigo-200" />}
                       </button>
@@ -599,15 +658,15 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
             {/* Section 4: Food, Transport & Accommodation */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <span className="w-7 h-7 rounded-lg bg-amber-600 text-white font-bold text-xs flex items-center justify-center">4</span>
-                <h3 className="text-base font-bold text-slate-900">Logistics & Accommodation</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Logistics & Accommodation</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Food Preference */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Food Preference
                   </label>
                   <div className="space-y-1.5">
@@ -616,8 +675,8 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={food}
                         className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition ${
                           formData.foodPreference === food
-                            ? 'bg-amber-50 border-amber-500 text-amber-900 font-semibold'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-900 dark:text-amber-200 font-semibold'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         <span>{food}</span>
@@ -635,7 +694,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Transport Preference */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Preferred Transport
                   </label>
                   <div className="space-y-1.5">
@@ -644,8 +703,8 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={transport}
                         className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium cursor-pointer transition ${
                           formData.transportPreference === transport
-                            ? 'bg-sky-50 border-sky-500 text-sky-900 font-semibold'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-500 text-sky-900 dark:text-sky-200 font-semibold'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         <span>{transport}</span>
@@ -663,7 +722,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
                 {/* Accommodation Preference */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Accommodation
                   </label>
                   <div className="space-y-2">
@@ -672,15 +731,15 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                         key={acc.type}
                         className={`block p-2.5 rounded-xl border text-xs cursor-pointer transition ${
                           formData.accommodation === acc.type
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900 font-semibold'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-semibold'
+                            : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-bold">{acc.type}</span>
-                          <span className="text-[10px] text-amber-500 font-bold">{acc.range}</span>
+                          <span className="text-[10px] text-amber-500 dark:text-amber-400 font-bold">{acc.range}</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 font-normal">{acc.desc}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">{acc.desc}</p>
                         <input
                           type="radio"
                           name="accPref"
@@ -697,7 +756,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
 
             {/* Section 5: Additional Requirements */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 Additional Requirements / Special Notes
               </label>
               <textarea
@@ -705,7 +764,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 onChange={(e) => setFormData(prev => ({ ...prev, additionalRequirements: e.target.value }))}
                 rows={3}
                 placeholder="e.g. Accessibility needs, traveling with pets, must-see landmarks, preferred neighborhood, photography spots..."
-                className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 resize-none"
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-100 dark:focus:ring-sky-950 resize-none transition"
               />
             </div>
 
@@ -715,7 +774,7 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full sm:w-auto min-w-[340px] px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-extrabold text-lg shadow-xl shadow-sky-600/25 hover:shadow-2xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-3 group"
+                className="w-full sm:w-auto min-w-[340px] px-10 py-5 rounded-2xl bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-700 text-white font-extrabold text-lg shadow-xl shadow-sky-600/25 hover:shadow-2xl hover:shadow-sky-600/35 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed transition-all inline-flex items-center justify-center gap-3 group cursor-pointer"
               >
                 {isGenerating ? (
                   <>
@@ -731,9 +790,9 @@ export const TripPlanner: React.FC<TripPlannerProps> = ({
                 )}
               </button>
 
-              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-500">
+              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-500 dark:text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Model: <strong className="font-mono text-slate-700">gemma-4-31b-it</strong></span>
+                <span>Model: <strong className="font-mono text-slate-700 dark:text-slate-300">gemma-4-31b-it</strong></span>
                 <span>•</span>
                 <span>Real-time budget balancing & day-by-day plan</span>
               </div>

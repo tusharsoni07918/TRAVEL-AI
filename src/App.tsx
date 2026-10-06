@@ -15,7 +15,8 @@ import { requestGemmaItinerary } from './services/itineraryApi';
 import { createSampleItinerary } from './services/sampleItinerary';
 
 const defaultTripData: TripFormData = {
-  destination: 'Goa',
+  startingPoint: 'Bhopal, Madhya Pradesh, India',
+  destination: 'Goa, India',
   startDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
   numberOfDays: 3,
   numberOfTravelers: 2,
@@ -146,7 +147,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-sky-500/20 selection:text-sky-900">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-sky-500/20 selection:text-sky-900 dark:selection:text-sky-200 transition-colors duration-200">
       {/* Animated Loading Overlay with dynamic steps */}
       {isGenerating && (
         <LoadingOverlay
