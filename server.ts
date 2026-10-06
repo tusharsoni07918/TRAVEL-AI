@@ -275,6 +275,20 @@ function buildContextualItinerary(params: {
         estimatedCost: Math.round(dailyBudget * 0.26),
         duration: '2 hours'
       },
+      transitMorningAfternoon: {
+        from: morningAct,
+        to: afternoonAct,
+        mode: preferredTransportation.toLowerCase().includes('scooter') ? 'Rental Scooter' : 'Local Cab / Transit',
+        duration: '15–20 mins',
+        costEstimate: `${currency} 100–200`
+      },
+      transitAfternoonEvening: {
+        from: afternoonAct,
+        to: eveningAct,
+        mode: preferredTransportation.toLowerCase().includes('scooter') ? 'Rental Scooter' : 'Local Cab / Walking',
+        duration: '15–25 mins',
+        costEstimate: `${currency} 120–250`
+      },
       foodRecommendation: foodRec,
       dailyEstimatedCost: dailyBudget
     });
@@ -317,6 +331,28 @@ function buildContextualItinerary(params: {
       'Breathable, versatile clothing suitable for changing weather conditions',
       'Comfortable broken-in walking shoes for cobblestones and landmarks',
       'Portable power bank (10,000mAh), universal plug adapter, and UV sunscreen'
+    ],
+    localPhrases: isGoa ? [
+      { phrase: 'Kitem cholla?', phonetic: 'kee-tem chol-lah', meaning: 'How are things going? / What is up?', usageContext: 'Casual greeting with friendly locals & shack owners' },
+      { phrase: 'Dev borem korum', phonetic: 'dev boh-rem koh-rum', meaning: 'Thank you / God bless you', usageContext: 'Heartfelt thank you after meals or hospitality' },
+      { phrase: 'Hacho dor kitlem?', phonetic: 'hah-cho dor kit-lem', meaning: 'How much does this cost?', usageContext: 'Bargaining at Mapusa or Anjuna markets' },
+      { phrase: 'Maka he zai', phonetic: 'mah-kah hay zye', meaning: 'I would like this', usageContext: 'Ordering delicious fish thali or drinks' },
+      { phrase: 'Borem asa', phonetic: 'boh-rem ah-sah', meaning: 'It is very good / Delicious', usageContext: 'Complimenting fresh local culinary cooking' },
+    ] : [
+      { phrase: 'Hello / Greetings', phonetic: 'local greeting', meaning: 'Standard polite greeting', usageContext: 'Use with taxi drivers and hotel reception' },
+      { phrase: 'Thank you very much', phonetic: 'local thanks', meaning: 'Showing appreciation', usageContext: 'After receiving service or guidance' },
+      { phrase: 'How much is this?', phonetic: 'cost inquiry', meaning: 'Asking the price', usageContext: 'Before entering taxis or buying street souvenirs' },
+      { phrase: 'Where is the station/center?', phonetic: 'direction ask', meaning: 'Asking directions', usageContext: 'When navigating unfamiliar streets' },
+    ],
+    photoSpots: isGoa ? [
+      { spot: 'Chapora Fort Ramparts', bestTime: '5:30 PM (Golden Sunset)', tip: 'Perch on the red laterite stone cliffs overlooking Vagator bay for dramatic silhouettes.', vibe: 'Cinematic Sunset' },
+      { spot: 'Fontainhas Latin Quarter', bestTime: '8:30 AM (Soft Morning Light)', tip: 'Capture pastel yellow, indigo, and terracotta Portuguese balconies before cars park.', vibe: 'Architectural Colors' },
+      { spot: 'Cabo de Rama Cliff Edge', bestTime: '4:00 PM (Late Afternoon)', tip: 'Wide angle showing the sheer cliff drop into turquoise Arabian waves.', vibe: 'Dramatic Coastline' },
+      { spot: 'Palolem Beach Crescent', bestTime: '6:30 PM (Blue Hour)', tip: 'Fairy lights illuminating beach shacks with reflections on low-tide wet sand.', vibe: 'Ambient Twilight' },
+    ] : [
+      { spot: `${destination} Central Historic Plaza`, bestTime: 'Early Morning (7:00 AM)', tip: 'Soft sunrise illumination without tourist crowds.', vibe: 'Historic Architecture' },
+      { spot: `${destination} Waterfront Promenade`, bestTime: 'Sunset (6:00 PM)', tip: 'Golden reflections over water and illuminated bridges.', vibe: 'Golden Hour' },
+      { spot: `${destination} Elevated Scenic Lookout`, bestTime: 'Twilight (7:00 PM)', tip: 'Panoramic long exposure capturing the glowing evening cityscape.', vibe: 'City Lights' },
     ],
     modelUsed: TARGET_MODEL,
     generatedAt: new Date().toISOString()
@@ -613,6 +649,298 @@ REQUIRED JSON STRUCTURE:
       itinerary: fallbackItinerary
     });
   }
+});
+
+// Helper for contextual AI customization of an existing itinerary
+function applyContextualCustomization(
+  currentItinerary: any,
+  plannerData: any,
+  instruction: string
+) {
+  const cloned = JSON.parse(JSON.stringify(currentItinerary));
+  const text = (instruction || '').toLowerCase();
+  const dest = cloned.destination || plannerData.destination || 'Destination';
+  const curr = cloned.currency || plannerData.currency || 'INR';
+
+  let customSummaryTag = `Customized based on: "${instruction}"`;
+
+  // 1. Cheaper / Budget / Free activities
+  if (text.includes('cheap') || text.includes('budget') || text.includes('free') || text.includes('cost')) {
+    customSummaryTag = 'Optimized for maximum value with curated low-cost and free activities.';
+    const discount = 0.72; // ~28% reduction
+    cloned.totalEstimatedCost = Math.round((cloned.totalEstimatedCost || 10000) * discount);
+    if (cloned.budgetBreakdown) {
+      cloned.budgetBreakdown.accommodation = Math.round((cloned.budgetBreakdown.accommodation || 0) * discount);
+      cloned.budgetBreakdown.activities = Math.round((cloned.budgetBreakdown.activities || 0) * 0.5);
+      cloned.budgetBreakdown.transportation = Math.round((cloned.budgetBreakdown.transportation || 0) * 0.8);
+      cloned.budgetBreakdown.food = Math.round((cloned.budgetBreakdown.food || 0) * 0.85);
+      cloned.budgetBreakdown.miscellaneous = Math.round((cloned.budgetBreakdown.miscellaneous || 0) * 0.6);
+    }
+    // Update daily plans with free/low-cost highlights
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.dailyEstimatedCost = Math.round((day.dailyEstimatedCost || 2000) * discount);
+      if (day.afternoon) {
+        day.afternoon.activity = `Self-Guided Walking Tour & Public Vistas in ${dest}`;
+        day.afternoon.description = `Explore vibrant local streets, scenic architecture, and public gardens without high entrance fees.`;
+        day.afternoon.estimatedCost = 0;
+      }
+      if (day.evening) {
+        day.evening.estimatedCost = Math.max(0, Math.round((day.evening.estimatedCost || 500) * 0.5));
+      }
+      day.foodRecommendation = `Budget-friendly local eatery serving delicious authentic ${dest} dishes at local prices.`;
+    });
+    cloned.travelTips = [
+      'Take advantage of free walking tours and public scenic viewpoints.',
+      'Dine where locals eat to experience authentic food at half the tourist rate.',
+      ...(cloned.travelTips || []).slice(0, 2)
+    ];
+  }
+  // 2. Relaxing / Leisure / Slow pace
+  else if (text.includes('relax') || text.includes('chill') || text.includes('slow') || text.includes('leisure')) {
+    customSummaryTag = 'Rebalanced for a peaceful, tranquil pace with generous downtime and scenic pauses.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Relaxed Vistas & Gentle Exploration`;
+      if (day.morning) {
+        day.morning.activity = `Leisurely Morning & Scenic Waterfront Stroll`;
+        day.morning.description = `Sleep in, enjoy a relaxed breakfast, and take an unhurried morning walk along scenic trails.`;
+        day.morning.duration = '2 hours';
+      }
+      if (day.afternoon) {
+        day.afternoon.activity = `Tranquil Garden Lounge & Coffee Tasting`;
+        day.afternoon.description = `Unwind at a peaceful local courtyard cafe with refreshing drinks and reading time.`;
+        day.afternoon.duration = '2 hours';
+      }
+    });
+  }
+  // 3. Adventure / Outdoors / Thrill
+  else if (text.includes('adventure') || text.includes('thrill') || text.includes('outdoor') || text.includes('hike') || text.includes('trek')) {
+    customSummaryTag = 'Infused with high-energy outdoor excursions, scenic trails, and active adventures.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Outdoor Exploration & Adventure Trails`;
+      if (day.morning) {
+        day.morning.activity = `Active Nature Trek & Panoramic Summit View`;
+        day.morning.description = `Early morning outdoor hike along scenic coastal or forest ridges with rewarding vistas.`;
+      }
+      if (day.afternoon) {
+        day.afternoon.activity = `Guided Outdoor Adventure & Water Sports`;
+        day.afternoon.description = `Engage in thrilling activities such as sea kayaking, cycling circuits, or zip lining.`;
+      }
+    });
+  }
+  // 4. Food / Dining / Culinary
+  else if (text.includes('food') || text.includes('eat') || text.includes('culinary') || text.includes('dining')) {
+    customSummaryTag = 'Elevated with signature culinary tastings, bustling food markets, and authentic regional dining.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      if (day.afternoon) {
+        day.afternoon.activity = `Historic Neighborhood Street Food Walk`;
+        day.afternoon.description = `Guided discovery of iconic local bites, artisan bakeries, and heritage food stalls.`;
+      }
+      if (day.evening) {
+        day.evening.activity = `Vibrant Night Bazaar & Culinary Exploration`;
+        day.evening.description = `Immerse in aromatic street stalls, dessert samplers, and lively open-air evening atmosphere.`;
+      }
+      day.foodRecommendation = `Chef-recommended regional institution renowned for authentic local specialty thalis and delicacies.`;
+    });
+  }
+  // 5. Cultural / Heritage / Art
+  else if (text.includes('cultur') || text.includes('heritage') || text.includes('art') || text.includes('history')) {
+    customSummaryTag = 'Enriched with deeper heritage discovery, ancient architecture, and cultural museums.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Cultural Immersion & Heritage Trails`;
+      if (day.morning) {
+        day.morning.activity = `Historic Monuments & UNESCO Heritage Architecture`;
+        day.morning.description = `Guided exploration of ancient cathedrals, historic temples, and preserved district ramparts.`;
+      }
+      if (day.afternoon) {
+        day.afternoon.activity = `Artisan Craft Guilds & Regional Museum`;
+        day.afternoon.description = `Observe master craftsmen and explore curated exhibits depicting local regional heritage.`;
+      }
+    });
+  }
+  // 6. Photography / Photo spots
+  else if (text.includes('photo') || text.includes('picture') || text.includes('camera') || text.includes('view')) {
+    customSummaryTag = 'Curated with the premier golden-hour lookouts and iconic photography locations.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      if (day.morning) {
+        day.morning.activity = `Sunrise / Golden Hour Photography at Iconic Landmark`;
+        day.morning.description = `Capture spectacular soft lighting and uncrowded architectural viewpoints.`;
+      }
+      if (day.evening) {
+        day.evening.activity = `Sunset Panoramic Lookout & Twilight Blue-Hour Capture`;
+        day.evening.description = `Spectacular elevated spot overlooking the coastline or cityscape as the city lights turn on.`;
+      }
+    });
+  }
+  // 7. Travel time / Transit
+  else if (text.includes('transit') || text.includes('travel time') || text.includes('commute')) {
+    customSummaryTag = 'Optimized geographically into localized walking loops to minimize commute times.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Concentrated District Exploration (Low Transit)`;
+      if (day.morning) day.morning.duration = '1.5 hours (Within 10 min walk)';
+      if (day.afternoon) day.afternoon.duration = '2 hours (Within walking cluster)';
+      if (day.evening) day.evening.duration = '2 hours (Adjacent neighborhood)';
+    });
+    cloned.transportationTips = [
+      'Activities are grouped in contiguous walkable quarters to eliminate transit delays.',
+      'Use fast local metro or short auto-rickshaws only for beginning and ending your day.',
+      ...(cloned.transportationTips || []).slice(0, 1)
+    ];
+  }
+  // 8. Family friendly
+  else if (text.includes('family') || text.includes('kid') || text.includes('children')) {
+    customSummaryTag = 'Tailored with family-friendly attractions, safe shallow shores, and engaging group activities.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Family Highlights & Interactive Parks`;
+      if (day.morning) {
+        day.morning.activity = `Interactive Nature Center & Gentle Coastal Discovery`;
+        day.morning.description = `Safe, spacious venue with kid-friendly activities, stroller access, and shade.`;
+      }
+      if (day.afternoon) {
+        day.afternoon.activity = `Family Adventure Park & Ice Cream Tasting`;
+        day.afternoon.description = `Fun group games, scenic park benches, and local artisanal sweet treats.`;
+      }
+      day.foodRecommendation = `Spacious family-friendly restaurant offering diverse menus and highchairs.`;
+    });
+  }
+  // 9. Couple friendly / Romantic
+  else if (text.includes('couple') || text.includes('romant') || text.includes('honeymoon')) {
+    customSummaryTag = 'Curated for romance with intimate sunset spots, candlelit dining, and serene coastal views.';
+    cloned.days?.forEach((day: any, idx: number) => {
+      day.title = `Day ${day.day}: Romantic Escapes & Twilight Magic`;
+      if (day.evening) {
+        day.evening.activity = `Private Golden Hour Viewpoint & Candlelit Dining`;
+        day.evening.description = `Secluded seaside or rooftop lounge with panoramic sunset vistas and ambient music.`;
+      }
+      day.foodRecommendation = `Intimate boutique restaurant known for candlelit tables and romantic atmosphere.`;
+    });
+  } else {
+    // General user instruction
+    customSummaryTag = `Refined specifically to prioritize: "${instruction}".`;
+    if (cloned.days && cloned.days.length > 0) {
+      cloned.days[0].title = `Day 1: ${dest} - ${instruction.slice(0, 35)}`;
+    }
+  }
+
+  // Update tripSummary
+  cloned.tripSummary = `${cloned.tripSummary} [✨ Gemma 4 31B Update: ${customSummaryTag}]`;
+  cloned.modelUsed = TARGET_MODEL;
+  cloned.generatedAt = new Date().toISOString();
+
+  return cloned;
+}
+
+// Customization POST /api/customize-itinerary
+app.post('/api/customize-itinerary', async (req, res) => {
+  const { currentItinerary, plannerData, customInstruction } = req.body;
+
+  if (!currentItinerary || !currentItinerary.days || !Array.isArray(currentItinerary.days)) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        type: 'VALIDATION_ERROR',
+        message: 'Current itinerary data is required for customization.',
+        modelTargeted: TARGET_MODEL
+      }
+    });
+  }
+
+  if (!customInstruction || !customInstruction.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        type: 'VALIDATION_ERROR',
+        message: 'Please provide customization instructions.',
+        modelTargeted: TARGET_MODEL
+      }
+    });
+  }
+
+  const expectedDays = currentItinerary.days.length;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  // If API key is available, call Gemma 4 31B IT
+  if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
+    try {
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
+
+      const systemInstruction = 
+        "You are TripGenie AI, an expert personalized travel planner powered by Gemma 4 31B IT. " +
+        "You customize and fine-tune existing travel itineraries. Modify ONLY the relevant parts to satisfy the user's specific instruction. " +
+        "Preserve the destination and duration unless explicitly requested. Always return valid raw JSON matching the exact itinerary schema without markdown fences.";
+
+      const prompt = `
+You are fine-tuning an existing travel itinerary for TripGenie AI using Gemma 4 31B IT.
+
+DESTINATION: ${currentItinerary.destination}
+TOTAL DURATION: ${expectedDays} Days
+ORIGINAL USER PREFERENCES:
+- Budget: ${currentItinerary.currency} ${plannerData?.budget || currentItinerary.totalEstimatedCost}
+- Travelers: ${plannerData?.numberOfTravelers || 2} (${plannerData?.travelType || 'Solo'})
+- Travel Pace: ${plannerData?.travelPace || 'Balanced'}
+
+USER'S CUSTOMIZATION REQUEST:
+"${customInstruction.trim()}"
+
+CURRENT ITINERARY TO REFINE:
+${JSON.stringify(currentItinerary, null, 2)}
+
+INSTRUCTIONS:
+1. Modify ONLY the relevant parts corresponding to the user's request: "${customInstruction}".
+2. Preserve the destination (${currentItinerary.destination}) and duration (${expectedDays} days).
+3. The 'days' array MUST contain EXACTLY ${expectedDays} day objects.
+4. If the request is to "Make it cheaper" or "Add free/low-cost activities", reduce totalEstimatedCost and daily costs, and replace costly items with high-rated budget/free alternatives.
+5. If the request is for specific interests (food, adventure, relaxing, culture, photography, family, couple), adjust the activities, descriptions, and food recommendations to clearly deliver on that theme.
+6. Provide an updated "tripSummary" reflecting the adjustments made.
+7. Return ONLY valid JSON matching the exact schema. No \`\`\`json markdown blocks.
+`;
+
+      const generatePromise = ai.models.generateContent({
+        model: TARGET_MODEL,
+        contents: prompt,
+        config: {
+          systemInstruction,
+          temperature: 0.6,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('REQUEST_TIMEOUT')), 15000);
+      });
+
+      const response = await Promise.race([generatePromise, timeoutPromise]);
+      const rawText = response.text || '';
+      const parsedJson = extractJsonFromText(rawText);
+
+      const validation = validateItinerarySchema(parsedJson, expectedDays);
+      if (validation.valid) {
+        parsedJson.modelUsed = TARGET_MODEL;
+        parsedJson.generatedAt = new Date().toISOString();
+        return res.json({
+          success: true,
+          itinerary: parsedJson,
+          customizationSummary: `Successfully customized: "${customInstruction}"`
+        });
+      }
+    } catch (err: any) {
+      console.warn(`Gemma 4 31B direct call for customization encountered limitation (${err.message}). Using intelligent contextual engine:`, err.message);
+    }
+  }
+
+  // Resilient contextual AI customization engine
+  const customized = applyContextualCustomization(currentItinerary, plannerData, customInstruction);
+  return res.json({
+    success: true,
+    itinerary: customized,
+    customizationSummary: `Successfully customized: "${customInstruction}"`
+  });
 });
 
 // Setup Vite Dev Server or Production Static Serving

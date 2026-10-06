@@ -35,10 +35,24 @@ import {
   ChevronRight, 
   Heart,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Camera,
+  Loader2,
+  Undo2,
+  Wand2,
+  Send,
+  SlidersHorizontal,
+  QrCode,
+  ExternalLink,
+  CalendarPlus
 } from 'lucide-react';
 import { Itinerary, AccommodationSuggestionItem } from '../types/itinerary';
 import { TripFormData, SavedTrip } from '../types/travel';
+import { customizeGemmaItinerary } from '../services/itineraryApi';
+import { exportItineraryToIcs } from '../services/calendarExport';
+import { OfflinePassModal } from './OfflinePassModal';
+import { ExpenseTrackerSection } from './ExpenseTrackerSection';
+import { TravelerToolkit } from './TravelerToolkit';
 
 interface ItineraryDashboardProps {
   itinerary: Itinerary;
@@ -47,6 +61,7 @@ interface ItineraryDashboardProps {
   onRegenerate: () => void;
   onSaveTrip: (trip: SavedTrip) => void;
   onBackToPlanner: () => void;
+  onUpdateItinerary?: (updatedItinerary: Itinerary) => void;
 }
 
 export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
@@ -56,10 +71,12 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
   onRegenerate,
   onSaveTrip,
   onBackToPlanner,
+  onUpdateItinerary,
 }) => {
   const [activeDayView, setActiveDayView] = useState<'all' | number>('all');
   const [savedToast, setSavedToast] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isOfflinePassOpen, setIsOfflinePassOpen] = useState(false);
   const [expandedDays, setExpandedDays] = useState<{ [key: number]: boolean }>({
     1: true,
     2: true,
@@ -198,6 +215,155 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
     window.print();
   };
 
+  // AI Personalization & Smart Controls State
+  const [customInstruction, setCustomInstruction] = useState('');
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [activeQuickCustomId, setActiveQuickCustomId] = useState<string | null>(null);
+  const [customizationFeedback, setCustomizationFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [historyStack, setHistoryStack] = useState<Itinerary[]>([]);
+
+  // 10 Quick Customization Options requested by user
+  const quickCustomizationOptions = [
+    {
+      id: 'cheaper',
+      label: 'Make it cheaper',
+      instruction: 'Make the itinerary more affordable and suggest budget-friendly and free alternatives while keeping high quality.',
+      icon: TrendingDown,
+      color: 'hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 text-slate-700',
+      badge: 'Save Budget'
+    },
+    {
+      id: 'relaxing',
+      label: 'Make it more relaxing',
+      instruction: 'Make the itinerary more relaxing with a slower pace, unhurried mornings, and scenic downtime.',
+      icon: Coffee,
+      color: 'hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 text-slate-700',
+      badge: 'Slow Pace'
+    },
+    {
+      id: 'adventure',
+      label: 'Add more adventure',
+      instruction: 'Add more outdoor adventures, scenic trails, thrilling water sports, and active excursions.',
+      icon: Compass,
+      color: 'hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700 text-slate-700',
+      badge: 'Thrill'
+    },
+    {
+      id: 'food',
+      label: 'Add more food experiences',
+      instruction: 'Add more local food experiences, authentic culinary tastings, night street markets, and famous regional eateries.',
+      icon: Utensils,
+      color: 'hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 text-slate-700',
+      badge: 'Culinary'
+    },
+    {
+      id: 'culture',
+      label: 'Add more cultural experiences',
+      instruction: 'Add more cultural experiences, historic UNESCO heritage monuments, museums, and local traditions.',
+      icon: Sparkles,
+      color: 'hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 text-slate-700',
+      badge: 'Heritage'
+    },
+    {
+      id: 'photo',
+      label: 'Add more photography spots',
+      instruction: 'Add more scenic photography spots, panoramic viewpoints, and iconic golden-hour photo locations.',
+      icon: Camera,
+      color: 'hover:bg-pink-50 hover:border-pink-300 hover:text-pink-700 text-slate-700',
+      badge: 'Photo Ops'
+    },
+    {
+      id: 'transit',
+      label: 'Reduce travel time',
+      instruction: 'Reduce travel time between activities by clustering stops geographically and minimizing transit delays.',
+      icon: Clock,
+      color: 'hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-slate-700',
+      badge: 'Less Transit'
+    },
+    {
+      id: 'free',
+      label: 'Add free/low-cost activities',
+      instruction: 'Add free or low-cost activities like public viewpoints, parks, self-guided walks, and free entry spots.',
+      icon: DollarSign,
+      color: 'hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 text-slate-700',
+      badge: 'Free & Low Cost'
+    },
+    {
+      id: 'family',
+      label: 'Make it family friendly',
+      instruction: 'Make the itinerary family friendly with safe, engaging activities suitable for children and group-friendly dining.',
+      icon: Users,
+      color: 'hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 text-slate-700',
+      badge: 'All Ages'
+    },
+    {
+      id: 'couple',
+      label: 'Make it couple friendly',
+      instruction: 'Make the itinerary couple friendly with romantic sunset viewpoints, intimate dining, and atmospheric twilight spots.',
+      icon: Heart,
+      color: 'hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 text-slate-700',
+      badge: 'Romantic'
+    },
+  ];
+
+  // Execute AI Itinerary Customization via Gemma 4 31B
+  const handleRunCustomization = async (instructionToRun?: string, quickId?: string) => {
+    const textToSubmit = instructionToRun || customInstruction;
+    if (!textToSubmit.trim() || isCustomizing) return;
+
+    setIsCustomizing(true);
+    if (quickId) setActiveQuickCustomId(quickId);
+    setCustomizationFeedback(null);
+
+    try {
+      // Push current version to history stack for undo support
+      setHistoryStack(prev => [itinerary, ...prev.slice(0, 4)]);
+
+      const response = await customizeGemmaItinerary(itinerary, plannerData, textToSubmit);
+
+      if (response.success && response.itinerary) {
+        if (onUpdateItinerary) {
+          onUpdateItinerary(response.itinerary);
+        }
+        setCustomizationFeedback({
+          type: 'success',
+          message: response.customizationSummary || `Itinerary customized for: "${textToSubmit.slice(0, 45)}..."`
+        });
+        setCustomInstruction('');
+      } else {
+        setCustomizationFeedback({
+          type: 'error',
+          message: response.error?.message || 'Could not update itinerary right now. Your trip details are safe. Please try again.'
+        });
+      }
+    } catch (err: any) {
+      setCustomizationFeedback({
+        type: 'error',
+        message: 'Network issue while updating itinerary. Please try again.'
+      });
+    } finally {
+      setIsCustomizing(false);
+      setActiveQuickCustomId(null);
+    }
+  };
+
+  // Undo customization handler
+  const handleUndoCustomization = () => {
+    if (historyStack.length === 0) return;
+    const [previous, ...rest] = historyStack;
+    if (onUpdateItinerary) {
+      onUpdateItinerary(previous);
+    }
+    setHistoryStack(rest);
+    setCustomizationFeedback({
+      type: 'success',
+      message: 'Reverted to previous itinerary version.'
+    });
+  };
+
   const daysList = itinerary.days || [];
   const displayedDays = activeDayView === 'all' 
     ? daysList 
@@ -247,10 +413,30 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
               <span>Regenerate</span>
             </button>
 
+            {/* Add to Calendar (.ICS) */}
+            <button
+              onClick={() => exportItineraryToIcs(itinerary, plannerData.startDate)}
+              className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              title="Download .ICS file for Google Calendar, Apple Calendar, or Outlook"
+            >
+              <CalendarPlus className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Add to Calendar</span>
+            </button>
+
+            {/* Offline Travel Pass */}
+            <button
+              onClick={() => setIsOfflinePassOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 transition text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              title="Open offline digital boarding pass with emergency numbers"
+            >
+              <QrCode className="w-3.5 h-3.5 text-sky-600" />
+              <span>Offline Pass</span>
+            </button>
+
             {/* Save Trip */}
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-500 transition text-xs font-bold shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-sky-600 text-white hover:bg-sky-500 transition text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Bookmark className="w-3.5 h-3.5" />
               <span>Save Trip</span>
@@ -259,17 +445,17 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
             {/* Print Itinerary */}
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition text-xs font-bold shadow-xs flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
               title="Open clean printable view"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Itinerary</span>
+              <span>Print</span>
             </button>
 
             {/* Share */}
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition"
+              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
               title="Share itinerary link"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
@@ -488,6 +674,195 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
           </div>
         </div>
 
+        {/* 5B. GROUP EXPENSE SPLIT & REAL-TIME TRACKER */}
+        <ExpenseTrackerSection 
+          itinerary={itinerary} 
+          plannerData={plannerData} 
+        />
+
+        {/* AI PERSONALIZATION & SMART ITINERARY CONTROLS - "Make Your Trip Smarter" */}
+        <div className="bg-gradient-to-br from-white via-indigo-50/30 to-sky-50/30 rounded-3xl p-6 sm:p-8 border border-indigo-100 shadow-xl space-y-6 relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-indigo-200/20 via-sky-200/10 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-indigo-100/80 relative">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+                <Wand2 className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Make Your Trip Smarter</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    Gemma 4 31B
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                  Fine-tune your itinerary with AI without planning everything again.
+                </p>
+              </div>
+            </div>
+
+            {/* Version / Undo Control */}
+            {historyStack.length > 0 && (
+              <button
+                onClick={handleUndoCustomization}
+                disabled={isCustomizing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-xs disabled:opacity-50 cursor-pointer"
+                title="Revert to prior itinerary version"
+              >
+                <Undo2 className="w-3.5 h-3.5 text-slate-500" />
+                <span>Undo Last Change ({historyStack.length})</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Customization Buttons Header & Grid */}
+          <div className="space-y-3 relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                1-Click Smart Refinements
+              </span>
+              <span className="text-[11px] text-slate-400">
+                Click any prompt to instantly refine
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              {quickCustomizationOptions.map((opt) => {
+                const Icon = opt.icon;
+                const isLoadingThis = isCustomizing && activeQuickCustomId === opt.id;
+
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setCustomInstruction(opt.instruction);
+                      handleRunCustomization(opt.instruction, opt.id);
+                    }}
+                    disabled={isCustomizing}
+                    className={`p-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-left transition-all group flex flex-col justify-between gap-2 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none cursor-pointer ${opt.color}`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="p-1.5 rounded-xl bg-slate-100 group-hover:bg-white transition-colors">
+                        {isLoadingThis ? (
+                          <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
+                        ) : (
+                          <Icon className="w-4 h-4 transition-transform group-hover:scale-110" />
+                        )}
+                      </div>
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 tracking-wider">
+                        {opt.badge}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 group-hover:text-inherit leading-tight">
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom AI Instruction Form */}
+          <div className="pt-2 space-y-3 relative">
+            <div className="flex items-center justify-between">
+              <label 
+                htmlFor="custom-ai-instruction"
+                className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5"
+              >
+                <span>Tell AI what you want to change</span>
+              </label>
+              <span className="text-[11px] text-slate-400">
+                Direct Gemma prompt
+              </span>
+            </div>
+
+            <div className="relative">
+              <textarea
+                id="custom-ai-instruction"
+                rows={2}
+                value={customInstruction}
+                onChange={(e) => setCustomInstruction(e.target.value)}
+                placeholder="Example: Replace expensive activities with budget-friendly alternatives and add more local food experiences."
+                disabled={isCustomizing}
+                className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition shadow-2xs resize-none disabled:bg-slate-50"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (customInstruction.trim()) {
+                      handleRunCustomization();
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+              <p className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Modifies relevant schedule & budget items while preserving your core destination & days.</span>
+              </p>
+
+              <button
+                onClick={() => handleRunCustomization()}
+                disabled={isCustomizing || !customInstruction.trim()}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isCustomizing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Personalizing with Gemma 4 31B...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>✨ Update My Itinerary</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Feedback & Confirmation Banner */}
+          {customizationFeedback && (
+            <div className={`p-4 rounded-2xl border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-200 ${
+              customizationFeedback.type === 'success'
+                ? 'bg-emerald-50/90 border-emerald-200 text-emerald-900'
+                : 'bg-rose-50/90 border-rose-200 text-rose-900'
+            }`}>
+              {customizationFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 text-xs">
+                <span className="font-bold block">
+                  {customizationFeedback.type === 'success' ? 'Personalization Applied' : 'Customization Notice'}
+                </span>
+                <span className="mt-0.5 block leading-relaxed opacity-90">
+                  {customizationFeedback.message}
+                </span>
+              </div>
+              <button
+                onClick={() => setCustomizationFeedback(null)}
+                className="text-slate-400 hover:text-slate-600 text-xs px-1"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 5C. TRAVELER'S SMART TOOLKIT (Language, Packing, Photo Spots, Weather Contingency) */}
+        <TravelerToolkit
+          itinerary={itinerary}
+          plannerData={plannerData}
+          onApplyContingency={(instruction) => handleRunCustomization(instruction)}
+          isApplyingContingency={isCustomizing}
+        />
+
         {/* 6. DAILY ITINERARY SECTION ("Your Day-by-Day Adventure") */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -617,6 +992,52 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
                                   {day.morning.description}
                                 </p>
+
+                                <div className="pt-2">
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.morning.activity}, ${itinerary.destination}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-900 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition"
+                                  >
+                                    <MapPin className="w-3 h-3 text-amber-700" />
+                                    <span>Google Maps</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Transit Hop Connector: Morning -> Afternoon */}
+                          {day.morning && day.afternoon && (
+                            <div className="relative pl-1 py-1">
+                              <div className="flex items-center justify-between text-xs bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-sky-100 text-sky-700">
+                                    <Car className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-slate-800">
+                                      Route Hop: ~{day.transitMorningAfternoon?.duration || '15–20 mins'}
+                                    </span>
+                                    <span className="text-[11px] text-slate-500 ml-1.5">
+                                      via {day.transitMorningAfternoon?.mode || (plannerData.transportPreference || 'Rental Scooter / Local Cab')}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 ml-1">
+                                      ({day.transitMorningAfternoon?.costEstimate || `~${currency} 100–200`})
+                                    </span>
+                                  </div>
+                                </div>
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${day.morning?.activity || ''}, ${itinerary.destination}`)}&destination=${encodeURIComponent(`${day.afternoon?.activity || ''}, ${itinerary.destination}`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1 shrink-0"
+                                >
+                                  <span>Transit Route</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
                               </div>
                             </div>
                           )}
@@ -654,6 +1075,52 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
                                   {day.afternoon.description}
                                 </p>
+
+                                <div className="pt-2">
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.afternoon.activity}, ${itinerary.destination}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-900 hover:text-sky-950 bg-sky-100/70 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 transition"
+                                  >
+                                    <MapPin className="w-3 h-3 text-sky-700" />
+                                    <span>Google Maps</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Transit Hop Connector: Afternoon -> Evening */}
+                          {day.afternoon && day.evening && (
+                            <div className="relative pl-1 py-1">
+                              <div className="flex items-center justify-between text-xs bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1 rounded-md bg-indigo-100 text-indigo-700">
+                                    <Car className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                    <span className="font-bold text-slate-800">
+                                      Route Hop: ~{day.transitAfternoonEvening?.duration || '15–20 mins'}
+                                    </span>
+                                    <span className="text-[11px] text-slate-500 ml-1.5">
+                                      via {day.transitAfternoonEvening?.mode || (plannerData.transportPreference || 'Local Transit / Taxi')}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 ml-1">
+                                      ({day.transitAfternoonEvening?.costEstimate || `~${currency} 120–250`})
+                                    </span>
+                                  </div>
+                                </div>
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${day.afternoon?.activity || ''}, ${itinerary.destination}`)}&destination=${encodeURIComponent(`${day.evening?.activity || ''}, ${itinerary.destination}`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 shrink-0"
+                                >
+                                  <span>Transit Route</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
                               </div>
                             </div>
                           )}
@@ -691,6 +1158,19 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
                                   {day.evening.description}
                                 </p>
+
+                                <div className="pt-2">
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.evening.activity}, ${itinerary.destination}`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-900 hover:text-indigo-950 bg-indigo-100/70 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition"
+                                  >
+                                    <MapPin className="w-3 h-3 text-indigo-700" />
+                                    <span>Google Maps</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                  </a>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -881,25 +1361,47 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
         <div className="print:hidden text-center py-6 border-t border-slate-200 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={onEditTrip}
-            className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition"
+            className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
           >
             Edit Trip Preferences
           </button>
           <button
             onClick={onRegenerate}
-            className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs"
+            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Regenerate with Gemma 4 31B</span>
           </button>
           <button
+            onClick={() => exportItineraryToIcs(itinerary, plannerData.startDate)}
+            className="px-5 py-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <CalendarPlus className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Export to Calendar (.ICS)</span>
+          </button>
+          <button
+            onClick={() => setIsOfflinePassOpen(true)}
+            className="px-5 py-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <QrCode className="w-3.5 h-3.5 text-sky-600" />
+            <span>Offline Travel Pass</span>
+          </button>
+          <button
             onClick={handleSave}
-            className="px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs"
+            className="px-5 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Bookmark className="w-3.5 h-3.5" />
             <span>Save to My Trips</span>
           </button>
         </div>
+
+        {/* Offline Boarding Pass Modal */}
+        <OfflinePassModal
+          isOpen={isOfflinePassOpen}
+          onClose={() => setIsOfflinePassOpen(false)}
+          itinerary={itinerary}
+          plannerData={plannerData}
+        />
 
       </div>
     </div>

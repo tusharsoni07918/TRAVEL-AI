@@ -64,3 +64,59 @@ export async function requestGemmaItinerary(
     };
   }
 }
+
+export async function customizeGemmaItinerary(
+  currentItinerary: any,
+  plannerData: TripFormData,
+  customInstruction: string
+): Promise<{
+  success: boolean;
+  itinerary?: any;
+  customizationSummary?: string;
+  error?: GenerationError;
+}> {
+  try {
+    const response = await fetch('/api/customize-itinerary', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        currentItinerary,
+        plannerData,
+        customInstruction,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error || {
+          type: 'UNKNOWN_ERROR',
+          message: 'Unable to customize your itinerary right now. Your trip details are safe. Please try again.',
+          diagnosticDetails: `Server responded with HTTP ${response.status}`,
+          modelTargeted: 'gemma-4-31b-it'
+        }
+      };
+    }
+
+    return {
+      success: true,
+      itinerary: data.itinerary,
+      customizationSummary: data.customizationSummary
+    };
+  } catch (err: any) {
+    console.error('Network or client failure customizing itinerary:', err);
+    return {
+      success: false,
+      error: {
+        type: 'NETWORK_ERROR',
+        message: 'Unable to update your itinerary right now. Please check your network connection.',
+        diagnosticDetails: err.message || 'Network connection failed.',
+        modelTargeted: 'gemma-4-31b-it'
+      }
+    };
+  }
+}

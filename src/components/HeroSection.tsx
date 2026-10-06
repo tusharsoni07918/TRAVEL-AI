@@ -71,12 +71,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               <button
                 onClick={onTryDemoClick}
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white border-2 border-slate-200 hover:border-sky-300 text-slate-800 font-bold text-base shadow-xs hover:bg-sky-50/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 group"
+                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white border-2 border-slate-200 hover:border-sky-300 text-slate-800 font-bold text-base shadow-xs hover:bg-sky-50/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 group cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
                   <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
                 </div>
-                <span>Try Demo (Goa, 3 Days)</span>
+                <span>View Live Demo Dashboard</span>
               </button>
             </div>
 
@@ -210,9 +210,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Bottom Card Action */}
               <button
                 onClick={onTryDemoClick}
-                className="w-full py-2.5 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold text-xs hover:from-sky-500 hover:to-indigo-500 transition-all flex items-center justify-center gap-2 shadow-md shadow-sky-600/20 cursor-pointer"
               >
-                <span>Click to Load this Demo in Planner</span>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Explore Live Itinerary Dashboard</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

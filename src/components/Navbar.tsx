@@ -65,6 +65,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               Plan Trip
             </button>
             <button
+              onClick={() => scrollTo('itinerary-dashboard')}
+              className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 border border-indigo-100 shadow-2xs hover:bg-indigo-100/60"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+              <span>Itinerary Dashboard</span>
+            </button>
+            <button
               onClick={() => scrollTo('how-it-works')}
               className="hover:text-sky-600 transition-colors"
             >
@@ -139,6 +146,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="w-full text-left py-2.5 text-base font-semibold text-slate-800 hover:text-sky-600 border-b border-slate-50"
           >
             Plan Trip
+          </button>
+          <button
+            onClick={() => scrollTo('itinerary-dashboard')}
+            className="w-full text-left py-2.5 text-base font-bold text-indigo-600 hover:text-indigo-700 border-b border-slate-50 flex items-center justify-between"
+          >
+            <span>Itinerary Dashboard</span>
+            <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full uppercase">Live</span>
           </button>
           <button
             onClick={() => scrollTo('how-it-works')}

@@ -12,27 +12,33 @@ import { MyTripsModal } from './components/MyTripsModal';
 import { Footer } from './components/Footer';
 import { getSavedTrips, saveTripToStorage, deleteTripFromStorage } from './services/storage';
 import { requestGemmaItinerary } from './services/itineraryApi';
+import { createSampleItinerary } from './services/sampleItinerary';
+
+const defaultTripData: TripFormData = {
+  destination: 'Goa',
+  startDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+  numberOfDays: 3,
+  numberOfTravelers: 2,
+  budget: 15000,
+  currency: 'INR',
+  travelType: 'Couple',
+  travelPace: 'Balanced',
+  interests: ['Beaches', 'Food', 'Adventure'],
+  foodPreference: 'No Preference',
+  transportPreference: 'Mixed',
+  accommodation: 'Mid-range',
+  additionalRequirements: 'Sunset beach views, local Goan seafood recommendations, and light water sports.',
+};
 
 export default function App() {
-  // Default Initial Trip Form State
-  const [formData, setFormData] = useState<TripFormData>({
-    destination: '',
-    startDate: new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0],
-    numberOfDays: 3,
-    numberOfTravelers: 2,
-    budget: 15000,
-    currency: 'INR',
-    travelType: 'Couple',
-    travelPace: 'Balanced',
-    interests: ['Beaches', 'Food'],
-    foodPreference: 'No Preference',
-    transportPreference: 'Mixed',
-    accommodation: 'Mid-range',
-    additionalRequirements: '',
-  });
+  // Default Initial Trip Form State (pre-filled with Goa demo for instant showcase)
+  const [formData, setFormData] = useState<TripFormData>(defaultTripData);
 
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
-  const [generatedItinerary, setGeneratedItinerary] = useState<Itinerary | null>(null);
+  // Immediately initialize with high-fidelity demo itinerary so all new features are visible on load!
+  const [generatedItinerary, setGeneratedItinerary] = useState<Itinerary | null>(() => 
+    createSampleItinerary(defaultTripData)
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingMode, setLoadingMode] = useState<'generate' | 'regenerate'>('generate');
   const [generationError, setGenerationError] = useState<GenerationError | null>(null);
@@ -63,31 +69,16 @@ export default function App() {
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
-    }, 150);
+    }, 100);
   };
 
   // Section 12: Try Demo function (Goa, 3 days, 2 travelers, ₹15,000, Couple, Balanced, etc.)
   const handleTryDemo = () => {
-    setFormData({
-      destination: 'Goa',
-      startDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-      numberOfDays: 3,
-      numberOfTravelers: 2,
-      budget: 15000,
-      currency: 'INR',
-      travelType: 'Couple',
-      travelPace: 'Balanced',
-      interests: ['Beaches', 'Food', 'Adventure'],
-      foodPreference: 'No Preference',
-      transportPreference: 'Mixed',
-      accommodation: 'Mid-range',
-      additionalRequirements: 'Sunset beach views, local Goan seafood recommendations, and light water sports.',
-    });
-
+    setFormData(defaultTripData);
+    setGeneratedItinerary(createSampleItinerary(defaultTripData));
     setDemoLoadedNotification(true);
-    setTimeout(() => setDemoLoadedNotification(false), 6000);
-
-    scrollToPlanner();
+    setTimeout(() => setDemoLoadedNotification(false), 5000);
+    scrollToDashboard();
   };
 
   // Handler for successful itinerary generation
@@ -204,6 +195,9 @@ export default function App() {
             onRegenerate={handleRegenerate}
             onSaveTrip={handleSaveTrip}
             onBackToPlanner={scrollToPlanner}
+            onUpdateItinerary={(updated) => {
+              setGeneratedItinerary(updated);
+            }}
           />
         )}
 

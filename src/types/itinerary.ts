@@ -7,12 +7,23 @@ export interface Activity {
   duration: string;
 }
 
+export interface TransitHop {
+  from: string;
+  to: string;
+  mode: string;
+  duration: string;
+  costEstimate: string;
+  distanceKm?: number;
+}
+
 export interface DayPlan {
   day: number;
   title: string;
   morning?: Activity;
   afternoon?: Activity;
   evening?: Activity;
+  transitMorningAfternoon?: TransitHop;
+  transitAfternoonEvening?: TransitHop;
   foodRecommendation?: string;
   dailyEstimatedCost: number;
 }
@@ -32,6 +43,20 @@ export interface AccommodationSuggestionItem {
   estimatedPrice?: string | number;
 }
 
+export interface LocalPhrase {
+  phrase: string;
+  meaning: string;
+  phonetic: string;
+  usageContext: string;
+}
+
+export interface PhotoSpot {
+  spot: string;
+  bestTime: string;
+  tip: string;
+  vibe: string;
+}
+
 export interface Itinerary {
   destination: string;
   tripSummary: string;
@@ -44,6 +69,15 @@ export interface Itinerary {
   travelTips?: string[];
   safetyTips?: string[];
   packingTips?: string[];
+  // Unique Traveler Toolkit Fields
+  localPhrases?: LocalPhrase[];
+  culturalEtiquette?: string[];
+  fairPricingTips?: string[];
+  photoSpots?: PhotoSpot[];
+  contingencyPlans?: {
+    rainOption: string;
+    delayOption: string;
+  };
   // Metadata
   modelUsed?: string;
   generatedAt?: string;
@@ -71,5 +105,18 @@ export interface GenerationError {
 export interface GenerateItineraryResponse {
   success: boolean;
   itinerary?: Itinerary;
+  error?: GenerationError;
+}
+
+export interface ActivityAlternativesResponse {
+  success: boolean;
+  alternatives?: Activity[];
+  error?: GenerationError;
+}
+
+export interface CustomizeItineraryResponse {
+  success: boolean;
+  itinerary?: Itinerary;
+  customizationSummary?: string;
   error?: GenerationError;
 }
