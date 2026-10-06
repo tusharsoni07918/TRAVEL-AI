@@ -10,9 +10,12 @@ import {
   X, 
   Sparkles, 
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  LogIn
 } from 'lucide-react';
 import { SavedTrip } from '../types/travel';
+import { useAuth } from '../context/AuthContext';
 
 interface MyTripsModalProps {
   isOpen: boolean;
@@ -32,6 +35,7 @@ export const MyTripsModal: React.FC<MyTripsModalProps> = ({
   onPlanTripClick,
 }) => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { isAuthenticated, user, openLogin } = useAuth();
 
   if (!isOpen) return null;
 
@@ -65,6 +69,33 @@ export const MyTripsModal: React.FC<MyTripsModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Auth Sync Status Banner */}
+        <div className="mt-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs">
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>Personal library synced for <strong>{user.fullName}</strong></span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <span className="text-slate-600 dark:text-slate-400 text-[11px]">
+                Sign in to save and sync trips across all your devices
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  openLogin();
+                }}
+                className="text-sky-600 dark:text-sky-400 font-bold hover:underline flex items-center gap-1 cursor-pointer text-xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Trips List */}

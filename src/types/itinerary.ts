@@ -5,6 +5,8 @@ export interface Activity {
   description: string;
   estimatedCost: number;
   duration: string;
+  imageUrl?: string;
+  imageQuery?: string;
 }
 
 export interface TransitHop {
@@ -34,6 +36,27 @@ export interface BudgetBreakdown {
   transportation: number;
   activities: number;
   miscellaneous: number;
+}
+
+export interface AccommodationOption {
+  id: string;
+  title: string;
+  type:
+    | "Hotel"
+    | "Homestay"
+    | "Hostel"
+    | "Resort"
+    | "Guest House"
+    | "Stay Area";
+  location: string;
+  address?: string;
+  description: string;
+  priceRange?: string;
+  rating?: number;
+  distanceFromActivities?: string;
+  reason: string;
+  bestFor?: string;
+  mapQuery: string;
 }
 
 export interface AccommodationSuggestionItem {
@@ -66,6 +89,7 @@ export interface Itinerary {
   budgetBreakdown?: BudgetBreakdown;
   days: DayPlan[];
   accommodationSuggestions?: (string | AccommodationSuggestionItem)[];
+  accommodationOptions?: AccommodationOption[];
   transportationTips?: string[];
   travelTips?: string[];
   safetyTips?: string[];

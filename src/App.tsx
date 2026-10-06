@@ -9,10 +9,15 @@ import { FeaturesSection } from './components/FeaturesSection';
 import { ItineraryDashboard } from './components/ItineraryDashboard';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { MyTripsModal } from './components/MyTripsModal';
+import { AuthModal } from './components/AuthModal';
+import { AuthLanding } from './components/auth/AuthLanding';
+import { AuthLoadingScreen } from './components/auth/AuthLoadingScreen';
 import { Footer } from './components/Footer';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { getSavedTrips, saveTripToStorage, deleteTripFromStorage } from './services/storage';
 import { requestGemmaItinerary } from './services/itineraryApi';
 import { createSampleItinerary } from './services/sampleItinerary';
+import { Sparkles, X } from 'lucide-react';
 
 const defaultTripData: TripFormData = {
   startingPoint: 'Bhopal, Madhya Pradesh, India',
@@ -31,7 +36,9 @@ const defaultTripData: TripFormData = {
   additionalRequirements: 'Sunset beach views, local Goan seafood recommendations, and light water sports.',
 };
 
-export default function App() {
+function AppContent() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
   // Default Initial Trip Form State (pre-filled with Goa demo for instant showcase)
   const [formData, setFormData] = useState<TripFormData>(defaultTripData);
 
@@ -46,14 +53,17 @@ export default function App() {
 
   const [isMyTripsOpen, setIsMyTripsOpen] = useState(false);
   const [demoLoadedNotification, setDemoLoadedNotification] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
 
-  // Load saved trips from localStorage on mount
+  // Load saved trips scoped strictly by logged in user UID
   useEffect(() => {
-    const loaded = getSavedTrips();
-    if (loaded && loaded.length > 0) {
-      setSavedTrips(loaded);
+    if (user?.uid) {
+      const loaded = getSavedTrips(user.uid);
+      setSavedTrips(loaded || []);
+    } else {
+      setSavedTrips([]);
     }
-  }, []);
+  }, [user?.uid]);
 
   // Scroll to planner helper
   const scrollToPlanner = () => {
@@ -73,7 +83,7 @@ export default function App() {
     }, 100);
   };
 
-  // Section 12: Try Demo function (Goa, 3 days, 2 travelers, ₹15,000, Couple, Balanced, etc.)
+  // Try Demo function (Bhopal -> Goa, 3 days, 2 travelers, ₹15,000, Couple, Balanced, etc.)
   const handleTryDemo = () => {
     setFormData(defaultTripData);
     setGeneratedItinerary(createSampleItinerary(defaultTripData));
@@ -121,18 +131,20 @@ export default function App() {
     }
   };
 
-  // Save new trip to localStorage and state
+  // Save new trip to storage (scoped to user)
   const handleSaveTrip = (newTrip: SavedTrip) => {
-    saveTripToStorage(newTrip);
+    if (!user?.uid) return;
+    saveTripToStorage(newTrip, user.uid);
     setSavedTrips(prev => {
       const exists = prev.some(t => t.id === newTrip.id);
       return exists ? prev : [newTrip, ...prev];
     });
   };
 
-  // Delete trip from localStorage and state
+  // Delete trip from storage
   const handleDeleteTrip = (id: string) => {
-    const updated = deleteTripFromStorage(id);
+    if (!user?.uid) return;
+    const updated = deleteTripFromStorage(id, user.uid);
     setSavedTrips(updated);
   };
 
@@ -146,6 +158,17 @@ export default function App() {
     scrollToDashboard();
   };
 
+  // 1. Loading state during auth verification
+  if (isLoading) {
+    return <AuthLoadingScreen />;
+  }
+
+  // 2. Authentication Landing Screen when user is logged out
+  if (!isAuthenticated || !user) {
+    return <AuthLanding />;
+  }
+
+  // 3. Authenticated TripGenie Application
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-sky-500/20 selection:text-sky-900 dark:selection:text-sky-200 transition-colors duration-200">
       {/* Animated Loading Overlay with dynamic steps */}
@@ -156,14 +179,35 @@ export default function App() {
         />
       )}
 
-      {/* Responsive Navbar */}
+      {/* Authenticated Navbar */}
       <Navbar
         onPlanTripClick={scrollToPlanner}
         onMyTripsClick={() => setIsMyTripsOpen(true)}
         savedTripsCount={savedTrips.length}
       />
 
-      {/* Main Content */}
+      {/* Personalized Welcome Banner */}
+      {showWelcomeBanner && (
+        <div className="bg-gradient-to-r from-sky-600 via-indigo-600 to-teal-500 text-white py-2 px-4 text-xs font-semibold shadow-xs">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 animate-pulse shrink-0" />
+              <span>
+                Welcome back, <strong>{user.fullName || 'Traveler'}</strong> 👋 Your personal travel library is ready.
+              </span>
+            </div>
+            <button
+              onClick={() => setShowWelcomeBanner(false)}
+              className="p-1 hover:bg-white/20 rounded-lg transition cursor-pointer"
+              aria-label="Dismiss greeting"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Protected Application Content */}
       <main>
         {/* Hero Section */}
         <HeroSection
@@ -227,6 +271,17 @@ export default function App() {
         onDeleteTrip={handleDeleteTrip}
         onPlanTripClick={scrollToPlanner}
       />
+
+      {/* Global Authentication Modal */}
+      <AuthModal />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

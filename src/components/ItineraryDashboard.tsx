@@ -53,6 +53,7 @@ import { exportItineraryToIcs } from '../services/calendarExport';
 import { OfflinePassModal } from './OfflinePassModal';
 import { ExpenseTrackerSection } from './ExpenseTrackerSection';
 import { TravelerToolkit } from './TravelerToolkit';
+import { ActivityCard } from './ActivityCard';
 
 interface ItineraryDashboardProps {
   itinerary: Itinerary;
@@ -974,74 +975,42 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                       <div className="p-5 sm:p-6 space-y-6">
                         
                         {/* 8. TIMELINE UI: Morning -> Afternoon -> Evening */}
-                        <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-2.5 sm:before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+                        <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-2.5 sm:before:left-3.5 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
                           
                           {/* MORNING */}
                           {day.morning && (
                             <div className="relative space-y-2">
                               {/* Timeline Node */}
-                              <div className="absolute -left-6 sm:-left-8 top-1 w-5 h-5 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center">
-                                <Sun className="w-2.5 h-2.5 text-amber-600" />
+                              <div className="absolute -left-6 sm:-left-8 top-5 w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-950/80 border-2 border-amber-500 flex items-center justify-center z-10 shadow-xs">
+                                <Sun className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
                               </div>
 
-                              <div className="bg-amber-50/40 border border-amber-200/50 rounded-2xl p-4 sm:p-5">
-                                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
-                                      <Sun className="w-3.5 h-3.5 text-amber-600" />
-                                      Morning
-                                    </span>
-                                    {day.morning.duration && (
-                                      <span className="text-[11px] font-semibold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {day.morning.duration}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-xs font-extrabold text-amber-950">
-                                    {formatCost(day.morning.estimatedCost)}
-                                  </span>
-                                </div>
-
-                                <h4 className="text-base font-bold text-slate-900 mb-1">
-                                  {day.morning.activity}
-                                </h4>
-                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                                  {day.morning.description}
-                                </p>
-
-                                <div className="pt-2">
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.morning.activity}, ${itinerary.destination}`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-900 hover:text-amber-950 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition"
-                                  >
-                                    <MapPin className="w-3 h-3 text-amber-700" />
-                                    <span>Google Maps</span>
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                  </a>
-                                </div>
-                              </div>
+                              <ActivityCard
+                                activity={day.morning}
+                                timeOfDay="morning"
+                                destination={itinerary.destination}
+                                currency={currency}
+                                formatCost={formatCost}
+                              />
                             </div>
                           )}
 
                           {/* Transit Hop Connector: Morning -> Afternoon */}
                           {day.morning && day.afternoon && (
                             <div className="relative pl-1 py-1">
-                              <div className="flex items-center justify-between text-xs bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
+                              <div className="flex items-center justify-between text-xs bg-slate-50/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-2.5 rounded-xl transition-colors">
                                 <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded-md bg-sky-100 text-sky-700">
+                                  <div className="p-1 rounded-md bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
                                     <Car className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <span className="font-bold text-slate-800">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">
                                       Route Hop: ~{day.transitMorningAfternoon?.duration || '15–20 mins'}
                                     </span>
-                                    <span className="text-[11px] text-slate-500 ml-1.5">
+                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1.5">
                                       via {day.transitMorningAfternoon?.mode || (plannerData.transportPreference || 'Rental Scooter / Local Cab')}
                                     </span>
-                                    <span className="text-[10px] text-slate-400 ml-1">
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-semibold">
                                       ({day.transitMorningAfternoon?.costEstimate || `~${currency} 100–200`})
                                     </span>
                                   </div>
@@ -1050,7 +1019,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                                   href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${day.morning?.activity || ''}, ${itinerary.destination}`)}&destination=${encodeURIComponent(`${day.afternoon?.activity || ''}, ${itinerary.destination}`)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1 shrink-0"
+                                  className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 flex items-center gap-1 shrink-0"
                                 >
                                   <span>Transit Route</span>
                                   <ExternalLink className="w-2.5 h-2.5" />
@@ -1063,68 +1032,36 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                           {day.afternoon && (
                             <div className="relative space-y-2">
                               {/* Timeline Node */}
-                              <div className="absolute -left-6 sm:-left-8 top-1 w-5 h-5 rounded-full bg-sky-100 border-2 border-sky-500 flex items-center justify-center">
-                                <Compass className="w-2.5 h-2.5 text-sky-600" />
+                              <div className="absolute -left-6 sm:-left-8 top-5 w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-950/80 border-2 border-sky-500 flex items-center justify-center z-10 shadow-xs">
+                                <Compass className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" />
                               </div>
 
-                              <div className="bg-sky-50/40 border border-sky-200/50 rounded-2xl p-4 sm:p-5">
-                                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1">
-                                      <Compass className="w-3.5 h-3.5 text-sky-600" />
-                                      Afternoon
-                                    </span>
-                                    {day.afternoon.duration && (
-                                      <span className="text-[11px] font-semibold text-sky-900 bg-sky-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {day.afternoon.duration}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-xs font-extrabold text-sky-950">
-                                    {formatCost(day.afternoon.estimatedCost)}
-                                  </span>
-                                </div>
-
-                                <h4 className="text-base font-bold text-slate-900 mb-1">
-                                  {day.afternoon.activity}
-                                </h4>
-                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                                  {day.afternoon.description}
-                                </p>
-
-                                <div className="pt-2">
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.afternoon.activity}, ${itinerary.destination}`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-sky-900 hover:text-sky-950 bg-sky-100/70 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 transition"
-                                  >
-                                    <MapPin className="w-3 h-3 text-sky-700" />
-                                    <span>Google Maps</span>
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                  </a>
-                                </div>
-                              </div>
+                              <ActivityCard
+                                activity={day.afternoon}
+                                timeOfDay="afternoon"
+                                destination={itinerary.destination}
+                                currency={currency}
+                                formatCost={formatCost}
+                              />
                             </div>
                           )}
 
                           {/* Transit Hop Connector: Afternoon -> Evening */}
                           {day.afternoon && day.evening && (
                             <div className="relative pl-1 py-1">
-                              <div className="flex items-center justify-between text-xs bg-slate-50/90 border border-slate-200/80 p-2.5 rounded-xl">
+                              <div className="flex items-center justify-between text-xs bg-slate-50/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 p-2.5 rounded-xl transition-colors">
                                 <div className="flex items-center gap-2">
-                                  <div className="p-1 rounded-md bg-indigo-100 text-indigo-700">
+                                  <div className="p-1 rounded-md bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
                                     <Car className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <span className="font-bold text-slate-800">
+                                    <span className="font-bold text-slate-800 dark:text-slate-200">
                                       Route Hop: ~{day.transitAfternoonEvening?.duration || '15–20 mins'}
                                     </span>
-                                    <span className="text-[11px] text-slate-500 ml-1.5">
+                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1.5">
                                       via {day.transitAfternoonEvening?.mode || (plannerData.transportPreference || 'Local Transit / Taxi')}
                                     </span>
-                                    <span className="text-[10px] text-slate-400 ml-1">
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 font-semibold">
                                       ({day.transitAfternoonEvening?.costEstimate || `~${currency} 120–250`})
                                     </span>
                                   </div>
@@ -1133,7 +1070,7 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                                   href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${day.afternoon?.activity || ''}, ${itinerary.destination}`)}&destination=${encodeURIComponent(`${day.evening?.activity || ''}, ${itinerary.destination}`)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 shrink-0"
+                                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 shrink-0"
                                 >
                                   <span>Transit Route</span>
                                   <ExternalLink className="w-2.5 h-2.5" />
@@ -1146,49 +1083,17 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                           {day.evening && (
                             <div className="relative space-y-2">
                               {/* Timeline Node */}
-                              <div className="absolute -left-6 sm:-left-8 top-1 w-5 h-5 rounded-full bg-indigo-100 border-2 border-indigo-500 flex items-center justify-center">
-                                <Moon className="w-2.5 h-2.5 text-indigo-600" />
+                              <div className="absolute -left-6 sm:-left-8 top-5 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 border-2 border-indigo-500 flex items-center justify-center z-10 shadow-xs">
+                                <Moon className="w-2.5 h-2.5 text-indigo-600 dark:text-indigo-400" />
                               </div>
 
-                              <div className="bg-indigo-50/40 border border-indigo-200/50 rounded-2xl p-4 sm:p-5">
-                                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1">
-                                      <Moon className="w-3.5 h-3.5 text-indigo-600" />
-                                      Evening
-                                    </span>
-                                    {day.evening.duration && (
-                                      <span className="text-[11px] font-semibold text-indigo-900 bg-indigo-100/80 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {day.evening.duration}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-xs font-extrabold text-indigo-950">
-                                    {formatCost(day.evening.estimatedCost)}
-                                  </span>
-                                </div>
-
-                                <h4 className="text-base font-bold text-slate-900 mb-1">
-                                  {day.evening.activity}
-                                </h4>
-                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                                  {day.evening.description}
-                                </p>
-
-                                <div className="pt-2">
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.evening.activity}, ${itinerary.destination}`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-indigo-900 hover:text-indigo-950 bg-indigo-100/70 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition"
-                                  >
-                                    <MapPin className="w-3 h-3 text-indigo-700" />
-                                    <span>Google Maps</span>
-                                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                  </a>
-                                </div>
-                              </div>
+                              <ActivityCard
+                                activity={day.evening}
+                                timeOfDay="evening"
+                                destination={itinerary.destination}
+                                currency={currency}
+                                formatCost={formatCost}
+                              />
                             </div>
                           )}
 
@@ -1221,20 +1126,106 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
         </div>
 
         {/* 10. ACCOMMODATION SECTION ("Where to Stay") */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Hotel className="w-5 h-5" />
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-slate-800 shadow-xl space-y-6 transition-colors">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-[#00B8A9] flex items-center justify-center border border-teal-200/60 dark:border-teal-800 shadow-xs">
+                <Hotel className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">Where to Stay</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  AI-recommended stay areas based on your itinerary, budget, and {plannerData.accommodation || 'Mid-range'} travel style.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Where to Stay</h2>
-              <p className="text-xs text-slate-500">Accommodation suggestions aligned with your {plannerData.accommodation} preference</p>
-            </div>
+            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-teal-50 dark:bg-teal-950/60 text-[#00B8A9] border border-teal-200/60 dark:border-teal-800">
+              <Compass className="w-3 h-3" />
+              Location Aware
+            </span>
           </div>
 
-          {!itinerary.accommodationSuggestions || itinerary.accommodationSuggestions.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl">
-              No specific accommodation recommendations generated. Check local booking portals for {plannerData.accommodation} stays.
+          {itinerary.accommodationOptions && itinerary.accommodationOptions.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {itinerary.accommodationOptions.map((opt, idx) => {
+                const mapQueryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(opt.mapQuery || `${opt.location}, ${itinerary.destination}, India`)}`;
+                return (
+                  <div 
+                    key={opt.id || idx} 
+                    className="p-6 rounded-2xl bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between space-y-4 hover:border-[#00B8A9]/50 transition-all shadow-xs group"
+                  >
+                    <div className="space-y-3">
+                      {/* Top Badge & Match */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300 bg-teal-100/70 dark:bg-teal-950/80 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800">
+                          Option {idx + 1} · {opt.type || 'Stay Area'}
+                        </span>
+                        <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          🧭 TripGenie Match: {95 - idx * 3}%
+                        </span>
+                      </div>
+
+                      {/* Title & Location */}
+                      <div>
+                        <h4 className="text-base font-black text-slate-900 dark:text-white group-hover:text-[#00B8A9] transition-colors">
+                          {opt.title}
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#00B8A9] shrink-0" />
+                          <span>{opt.location}</span>
+                        </div>
+                      </div>
+
+                      {/* Best For tag */}
+                      {opt.bestFor && (
+                        <div className="text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 px-3 py-1.5 rounded-xl border border-amber-200/70 dark:border-amber-800/60 font-medium">
+                          <strong className="font-bold">Best for:</strong> {opt.bestFor}
+                        </div>
+                      )}
+
+                      {/* Description */}
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {opt.description}
+                      </p>
+
+                      {/* Why this location? */}
+                      <div className="p-3 rounded-xl bg-sky-50/80 dark:bg-sky-950/50 border border-sky-200/70 dark:border-sky-800/60 text-xs space-y-1">
+                        <strong className="font-bold text-sky-900 dark:text-sky-200 block flex items-center gap-1">
+                          <span>💡 Why this location?</span>
+                        </strong>
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                          {opt.reason}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom: Price & Google Maps Button */}
+                    <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700/60 space-y-3">
+                      {opt.priceRange && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Estimated Stay:</span>
+                          <span className="font-black text-slate-900 dark:text-white">{opt.priceRange}</span>
+                        </div>
+                      )}
+
+                      <a
+                        href={mapQueryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#0B2D42] hover:bg-[#071A2B] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs group-hover:bg-[#00B8A9] cursor-pointer"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>View Location on Google Maps</span>
+                        <ExternalLink className="w-3 h-3 ml-0.5" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (!itinerary.accommodationSuggestions || itinerary.accommodationSuggestions.length === 0) ? (
+            <div className="p-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800 rounded-2xl">
+              No specific accommodation recommendations generated. Check local booking portals for {plannerData.accommodation || 'Mid-range'} stays.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
@@ -1245,30 +1236,43 @@ export const ItineraryDashboard: React.FC<ItineraryDashboardProps> = ({
                 const cat = isObj ? (item as AccommodationSuggestionItem).category : null;
                 const price = isObj ? (item as AccommodationSuggestionItem).estimatedPrice : null;
 
+                const fallbackMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name}, ${itinerary.destination}, India`)}`;
+
                 return (
-                  <div key={idx} className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between space-y-2">
+                  <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100/60 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300 bg-teal-100/60 dark:bg-teal-950 px-2 py-0.5 rounded-md">
                           {cat || `Option ${idx + 1}`}
                         </span>
                         {price && (
-                          <span className="text-xs font-extrabold text-slate-900">
+                          <span className="text-xs font-extrabold text-slate-900 dark:text-white">
                             {price}
                           </span>
                         )}
                       </div>
-                      <h4 className="text-sm font-bold text-slate-900">{name}</h4>
-                      {desc && <p className="text-xs text-slate-600 mt-1 leading-relaxed">{desc}</p>}
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{name}</h4>
+                      {desc && <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">{desc}</p>}
                     </div>
+
+                    <a
+                      href={fallbackMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white text-[11px] font-bold transition flex items-center justify-center gap-1.5"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>View on Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
                 );
               })}
             </div>
           )}
 
-          <p className="text-[11px] text-slate-400 italic">
-            * Note: Prices and availability are estimates and should be verified before booking.
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+            * Note: Accommodation suggestions are AI-recommended stay areas based on itinerary activity concentration. Prices and availability are estimates and should be verified before booking.
           </p>
         </div>
 

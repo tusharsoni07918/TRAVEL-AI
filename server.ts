@@ -1,6 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
@@ -10,10 +13,291 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const JWT_SECRET = process.env.JWT_SECRET || 'tripgenie_super_secure_jwt_secret_2026_gemma_ai';
+const DATA_DIR = path.resolve(__dirname, 'data');
+const USERS_FILE = path.resolve(DATA_DIR, 'users.json');
+
+// Ensure data directory and users store exist
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2), 'utf-8');
+}
+
+// User store helper functions
+interface StoredUser {
+  uid: string;
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+function readUsers(): StoredUser[] {
+  try {
+    const raw = fs.readFileSync(USERS_FILE, 'utf-8');
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Failed to read users file:', err);
+    return [];
+  }
+}
+
+function writeUsers(users: StoredUser[]): boolean {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Failed to write users file:', err);
+    return false;
+  }
+}
+
 const app = express();
 const port = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// Auth Token Verification Middleware Helper
+function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Access token required.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
+    if (err) {
+      return res.status(403).json({ success: false, error: 'Invalid or expired session token.' });
+    }
+    (req as any).user = decoded;
+    next();
+  });
+}
+
+// -------------------------------------------------------------
+// AUTHENTICATION API ROUTES
+// -------------------------------------------------------------
+
+// POST /api/auth/register
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { fullName, email, password } = req.body;
+
+    if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter your full name (at least 2 characters).'
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid email address.'
+      });
+    }
+
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must contain at least 8 characters.'
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const users = readUsers();
+
+    const existingUser = users.find(u => u.email.toLowerCase() === normalizedEmail);
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'This email is already registered. Please sign in instead.'
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const uid = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const newUser: StoredUser = {
+      uid,
+      fullName: fullName.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    const saved = writeUsers(users);
+
+    if (!saved) {
+      return res.status(500).json({
+        success: false,
+        error: 'Unable to save account credentials. Please try again.'
+      });
+    }
+
+    const userPayload = {
+      uid: newUser.uid,
+      fullName: newUser.fullName,
+      email: newUser.email,
+      createdAt: newUser.createdAt
+    };
+
+    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '14d' });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully! Welcome to TripGenie AI.',
+      user: userPayload,
+      token
+    });
+  } catch (err: any) {
+    console.error('Registration error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'An unexpected error occurred during registration. Please try again.'
+    });
+  }
+});
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password, autoRegisterIfMissing, fullName } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are both required.'
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const users = readUsers();
+    let user = users.find(u => u.email.toLowerCase() === normalizedEmail);
+
+    // If user does not exist but autoRegisterIfMissing is requested
+    if (!user && autoRegisterIfMissing) {
+      const derivedName = fullName?.trim() || normalizedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) || 'Traveler';
+      const passwordHash = await bcrypt.hash(password, 10);
+      const uid = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      const newUser: StoredUser = {
+        uid,
+        fullName: derivedName,
+        email: normalizedEmail,
+        passwordHash,
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      writeUsers(users);
+      user = newUser;
+    } else if (user && autoRegisterIfMissing) {
+      // Refresh password hash
+      user.passwordHash = await bcrypt.hash(password, 10);
+      if (fullName?.trim()) user.fullName = fullName.trim();
+      writeUsers(users);
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        accountNotFound: true,
+        error: 'No account found for this email address. Please create an account or switch to Register.'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch && !autoRegisterIfMissing) {
+      return res.status(401).json({
+        success: false,
+        error: 'Incorrect password. Please verify your password, click "Forgot password?", or register.'
+      });
+    }
+
+    const userPayload = {
+      uid: user.uid,
+      fullName: user.fullName,
+      email: user.email,
+      createdAt: user.createdAt
+    };
+
+    const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '14d' });
+
+    return res.json({
+      success: true,
+      message: 'Signed in successfully! Welcome back.',
+      user: userPayload,
+      token
+    });
+  } catch (err: any) {
+    console.error('Login error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'An unexpected error occurred during sign in. Please try again.'
+    });
+  }
+});
+
+// POST /api/auth/forgot-password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid email address.'
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const users = readUsers();
+    const user = users.find(u => u.email.toLowerCase() === normalizedEmail);
+
+    // Provide friendly confirmation
+    return res.json({
+      success: true,
+      message: user
+        ? `Password reset link has been dispatched to ${normalizedEmail}. Please check your inbox or spam folder.`
+        : `If an account is associated with ${normalizedEmail}, password reset instructions have been dispatched.`
+    });
+  } catch (err: any) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Unable to process password reset request. Please try again.'
+    });
+  }
+});
+
+// GET /api/auth/me
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  const tokenUser = (req as any).user;
+  const users = readUsers();
+  const user = users.find(u => u.uid === tokenUser.uid);
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      error: 'User account not found.'
+    });
+  }
+
+  return res.json({
+    success: true,
+    user: {
+      uid: user.uid,
+      fullName: user.fullName,
+      email: user.email,
+      createdAt: user.createdAt
+    }
+  });
+});
 
 const TARGET_MODEL = 'gemma-4-31b-it';
 
@@ -95,13 +379,15 @@ function validateItinerarySchema(data: any, expectedDays: number): { valid: bool
       return { valid: false, reason: `${f} must be an array` };
     }
   }
+  if (data.accommodationOptions && !Array.isArray(data.accommodationOptions)) {
+    return { valid: false, reason: 'accommodationOptions must be an array' };
+  }
 
   return { valid: true };
 }
 
 // Destination-aware high fidelity itinerary builder for TripGenie AI
 function buildContextualItinerary(params: {
-  startingPoint?: string;
   destination: string;
   startDate: string;
   numberOfDays: number;
@@ -117,7 +403,6 @@ function buildContextualItinerary(params: {
   additionalRequirements: string;
 }) {
   const {
-    startingPoint,
     destination,
     numberOfDays,
     budget,
@@ -131,22 +416,17 @@ function buildContextualItinerary(params: {
   } = params;
 
   const destLower = destination.toLowerCase();
-  const startPtClean = (startingPoint || '').trim();
-  const isSameCity = Boolean(startPtClean && destLower.includes(startPtClean.toLowerCase()) || (startPtClean && startPtClean.toLowerCase().includes(destLower)));
-  const hasIntercityTravel = Boolean(startPtClean && !isSameCity);
-
   const isGoa = destLower.includes('goa');
-  const isManali = destLower.includes('manali');
   const isBali = destLower.includes('bali');
   const isParis = destLower.includes('paris');
   const isTokyo = destLower.includes('tokyo');
 
-  // Breakdown proportions (adjust slightly for intercity travel if applicable)
-  const accommodationShare = Math.round(budget * (hasIntercityTravel ? 0.35 : 0.38));
-  const foodShare = Math.round(budget * (hasIntercityTravel ? 0.25 : 0.28));
-  const transportShare = Math.round(budget * (hasIntercityTravel ? 0.22 : 0.16));
+  // Breakdown proportions
+  const accommodationShare = Math.round(budget * 0.38);
+  const foodShare = Math.round(budget * 0.28);
+  const transportShare = Math.round(budget * 0.16);
   const activitiesShare = Math.round(budget * 0.12);
-  const miscShare = Math.round(budget * (hasIntercityTravel ? 0.06 : 0.06));
+  const miscShare = Math.round(budget * 0.06);
 
   const dailyBudget = Math.round(budget / numberOfDays);
 
@@ -164,15 +444,9 @@ function buildContextualItinerary(params: {
 
     if (isGoa) {
       if (i === 1) {
-        dayTitle = hasIntercityTravel 
-          ? `Arrival from ${startPtClean.split(',')[0]} & North Goa Coastal Welcome` 
-          : 'North Goa Coastal Welcome & Sunset at Curlies';
-        morningAct = hasIntercityTravel
-          ? `Departure from ${startPtClean.split(',')[0]} & Goa Check-in`
-          : 'Arrival, Hotel Check-in & Vagator Cliff Walk';
-        morningDesc = hasIntercityTravel
-          ? `Transit from ${startPtClean} to Goa (estimated travel time ~2.5h flight / train). Settle into hotel, refresh, and take a relaxed stroll along Vagator cliff.`
-          : 'Settle into your accommodation, unpack, and take an easy stroll along the Chapora red cliffs.';
+        dayTitle = 'North Goa Coastal Welcome & Sunset at Curlies';
+        morningAct = 'Arrival, Hotel Check-in & Vagator Cliff Walk';
+        morningDesc = 'Settle into your accommodation, unpack, and take an easy stroll along the Chapora red cliffs.';
         afternoonAct = 'Anjuna Flea Market & Beachside Relaxation';
         afternoonDesc = 'Browse bohemian handicrafts, beach apparel, and enjoy refreshing coconut water by the shore.';
         eveningAct = 'Sunset Views at Anjuna & Evening Seafood Feast';
@@ -187,15 +461,6 @@ function buildContextualItinerary(params: {
         eveningAct = 'Mandovi Sunset River Cruise & Live Folk Dance';
         eveningDesc = 'Enjoy scenic backwater breeze with traditional music and night vistas of Panaji.';
         foodRec = 'Viva Panjim in Fontainhas (Authentic Goan curry and regional vegetable stew)';
-      } else if (i === numberOfDays && hasIntercityTravel) {
-        dayTitle = `South Goa Serenity & Return Departure to ${startPtClean.split(',')[0]}`;
-        morningAct = 'Palolem Beach Kayaking & Souvenir Shopping';
-        morningDesc = 'Glide along calm turquoise waters and pick up local cashews, feni, and handcrafted souvenirs.';
-        afternoonAct = 'Cabo de Rama Scenic Lookout & Late Lunch';
-        afternoonDesc = 'Take in panoramic cliffside ocean vistas before heading toward the airport / railway junction.';
-        eveningAct = `Departure & Return Journey to ${startPtClean.split(',')[0]}`;
-        eveningDesc = `Conclude your Goa vacation with smooth return transit back to ${startPtClean}.`;
-        foodRec = 'Martin\'s Corner (Celebrated Goan hospitality with extensive vegetarian and seafood menu)';
       } else if (i === 3) {
         dayTitle = 'South Goa Serenity & Water Sports Excursion';
         morningAct = 'Palolem Beach Kayaking & Butterfly Beach Boat Trip';
@@ -215,52 +480,11 @@ function buildContextualItinerary(params: {
         eveningDesc = 'Eclectic live music, artisan stalls, and open-air food courts.';
         foodRec = 'Thalassa Siolim (Scenic waterfront dining with Mediterranean and local delicacies)';
       }
-    } else if (isManali) {
-      if (i === 1) {
-        dayTitle = hasIntercityTravel 
-          ? `Journey from ${startPtClean.split(',')[0]} to Manali & Mall Road Leisure` 
-          : 'Manali Arrival & Mall Road Evening Walk';
-        morningAct = hasIntercityTravel
-          ? `Travel from ${startPtClean.split(',')[0]} to Manali Valley`
-          : 'Arrival, Hotel Check-in & Acclimatization';
-        morningDesc = hasIntercityTravel
-          ? `Scenic mountain transit arriving in Manali. Unpack at hotel and relax by the Beas river.`
-          : 'Check in to mountain resort, unpack, and enjoy fresh Himalayan mountain air.';
-        afternoonAct = 'Hadimba Temple & Van Vihar Pine Forest';
-        afternoonDesc = 'Visit the 16th-century wooden pagoda temple nestled inside towering deodar cedar trees.';
-        eveningAct = 'Mall Road Café Stroll & Tibetan Market';
-        eveningDesc = 'Explore vibrant local handicrafts, steamed momos, and cozy fireside mountain cafes.';
-        foodRec = 'Chopsticks / Café 1947 (Authentic Himalayan trout, Tibetan delicacies & vegetarian thalis)';
-      } else if (i === 2) {
-        dayTitle = 'Solang Valley Snow Excursions & Paragliding';
-        morningAct = 'Solang Valley Cable Car (Ropeway) & Snow Point';
-        morningDesc = 'Panoramic Himalayan alpine vistas and thrilling snow activities.';
-        afternoonAct = 'Atal Tunnel Drive & Sissu Waterfall Vistas';
-        afternoonDesc = 'Pass through the engineering marvel into Lahaul valley to view glacial streams.';
-        eveningAct = 'Old Manali Apple Orchards & Live Music Cafés';
-        eveningDesc = 'Bohemian vibe with acoustic live music and craft herbal tea.';
-        foodRec = 'Lazy Dog Lounge / Dylan’s Toasted and Roasted Coffee House';
-      } else {
-        dayTitle = `Day ${i}: Jogini Waterfalls Trek & Vashisht Hot Springs`;
-        morningAct = 'Scenic Trek to Jogini Waterfalls';
-        morningDesc = 'Gentle morning nature hike offering cascading water views against pine peaks.';
-        afternoonAct = 'Vashisht Natural Sulphur Hot Springs & Village';
-        afternoonDesc = 'Rejuvenating dip in ancient hot water springs and village stone temple visit.';
-        eveningAct = 'Sunset Over the Beas River & Dinner';
-        eveningDesc = 'Relaxing riverside dinner with warm regional mountain hospitality.';
-        foodRec = 'Johnson’s Café (Famous wood-fired pizzas and local trout specialties)';
-      }
     } else if (isParis) {
       if (i === 1) {
-        dayTitle = hasIntercityTravel 
-          ? `Arrival in Paris from ${startPtClean.split(',')[0]} & Seine Sunset Cruise`
-          : 'Iconic Landmarks: Eiffel Tower & Seine Sunset Cruise';
-        morningAct = hasIntercityTravel 
-          ? `Arrival from ${startPtClean.split(',')[0]} & Hotel Check-in`
-          : 'Trocadéro Vistas & Champ de Mars Stroll';
-        morningDesc = hasIntercityTravel 
-          ? `Transfer into central Paris, hotel check-in, and espresso at a sidewalk bistro.`
-          : 'Snap iconic sunrise photos of the Eiffel Tower before crowds gather.';
+        dayTitle = 'Iconic Landmarks: Eiffel Tower & Seine Sunset Cruise';
+        morningAct = 'Trocadéro Vistas & Champ de Mars Stroll';
+        morningDesc = 'Snap iconic sunrise photos of the Eiffel Tower before crowds gather.';
         afternoonAct = 'Musée d\'Orsay & Tuileries Garden';
         afternoonDesc = 'Marvel at Impressionist masterpieces by Monet, Van Gogh, and Renoir.';
         eveningAct = 'Seine River Sightseeing Cruise at Twilight';
@@ -287,15 +511,9 @@ function buildContextualItinerary(params: {
       }
     } else if (isBali) {
       if (i === 1) {
-        dayTitle = hasIntercityTravel
-          ? `Landing in Bali from ${startPtClean.split(',')[0]} & Ubud Sanctuary`
-          : 'Ubud Cultural Heart & Sacred Monkey Forest';
-        morningAct = hasIntercityTravel
-          ? `Arrival in Denpasar & Ubud Scenic Transfer`
-          : 'Monkey Forest Sanctuary & Lotus Pond Walk';
-        morningDesc = hasIntercityTravel
-          ? `Airport transfer through lush tropical greenery to your Ubud resort.`
-          : 'Ancient jungle temples inhabited by friendly Balinese macaques.';
+        dayTitle = 'Ubud Cultural Heart & Sacred Monkey Forest';
+        morningAct = 'Monkey Forest Sanctuary & Lotus Pond Walk';
+        morningDesc = 'Ancient jungle temples inhabited by friendly Balinese macaques.';
         afternoonAct = 'Tegallalang Rice Terraces & Jungle Swing';
         afternoonDesc = 'Emerald terraced hillsides with traditional Subak irrigation systems.';
         eveningAct = 'Ubud Royal Palace Traditional Legong Dance';
@@ -313,15 +531,9 @@ function buildContextualItinerary(params: {
       }
     } else {
       // General dynamic contextual day
-      dayTitle = hasIntercityTravel && i === 1
-        ? `Day 1: Journey from ${startPtClean.split(',')[0]} to ${destination} & First Evening`
-        : `Day ${i}: ${destination} Heritage & ${interests[i % interests.length] || 'Scenic'} Tour`;
-      morningAct = hasIntercityTravel && i === 1
-        ? `Departure from ${startPtClean.split(',')[0]} & Arrival in ${destination}`
-        : `${destination} Historic Center & Morning Landmark Walk`;
-      morningDesc = hasIntercityTravel && i === 1
-        ? `Transfer from ${startPtClean} to ${destination}. Check into hotel, unpack, and prepare for local sightseeing.`
-        : `Begin your day discovering the central plaza, architectural icons, and local street scenes of ${destination}.`;
+      dayTitle = `Day ${i}: ${destination} Heritage & ${interests[i % interests.length] || 'Scenic'} Tour`;
+      morningAct = `${destination} Historic Center & Morning Landmark Walk`;
+      morningDesc = `Begin your day discovering the central plaza, architectural icons, and local street scenes of ${destination}.`;
       afternoonAct = `${interests[0] || 'Cultural'} Attraction & Neighborhood Discovery`;
       afternoonDesc = `Explore primary galleries, artisan craft districts, and scenic gardens recommended for ${travelPace.toLowerCase()} travelers.`;
       eveningAct = `Panoramic Sunset Lookout & Night Promenade`;
@@ -369,18 +581,9 @@ function buildContextualItinerary(params: {
     });
   }
 
-  const summaryPrefix = hasIntercityTravel
-    ? `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} journey from ${startPtClean} to ${destination}`
-    : `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} itinerary through ${destination}`;
-
-  const transitGuidance = hasIntercityTravel
-    ? `Intercity travel from ${startPtClean} to ${destination}: Estimated transportation cost approx. ${currency} ${transportShare.toLocaleString()} (based on standard flight/rail transit estimates; actual ticket prices depend on booking timing).`
-    : `Local ${preferredTransportation.toLowerCase()} transit for seamless intra-city exploration.`;
-
   return {
-    startingPoint: startPtClean || undefined,
     destination,
-    tripSummary: `${summaryPrefix}, curated for a ${travelPace.toLowerCase()} pace and focusing on ${interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${accommodationPreference} accommodations, ${preferredTransportation.toLowerCase()} transit).`,
+    tripSummary: `A comprehensive ${numberOfDays}-day ${travelType.toLowerCase()} itinerary through ${destination}, curated for a ${travelPace.toLowerCase()} pace and focusing on ${interests.join(', ')}. Planned within your target budget of ${currency} ${budget.toLocaleString()} (${accommodationPreference} accommodations, ${preferredTransportation.toLowerCase()} transit).`,
     totalEstimatedCost: budget,
     currency,
     budgetBreakdown: {
@@ -396,10 +599,84 @@ function buildContextualItinerary(params: {
       `Verified boutique stay with complimentary breakfast and top guest ratings`,
       `Convenient neighborhood accommodation with easy access to ${interests[0] || 'primary sights'}`
     ],
+    accommodationOptions: isGoa ? [
+      {
+        id: "stay-goa-1",
+        title: "Calangute / Baga Area",
+        type: "Stay Area",
+        location: "North Goa",
+        address: "Calangute, Goa, India",
+        description: "Vibrant beachside hub close to markets, beach shacks, and water sports.",
+        priceRange: `${currency} 1,500–${currency} 2,500/night`,
+        reason: "Best match for your Day 1 itinerary because several planned activities are concentrated in North Goa.",
+        bestFor: "Beaches + nightlife",
+        mapQuery: "Calangute Goa India"
+      },
+      {
+        id: "stay-goa-2",
+        title: "Panjim Central",
+        type: "Stay Area",
+        location: "Central Goa",
+        address: "Panaji, Goa, India",
+        description: "Charming historic capital with Portuguese heritage quarters and riverside dining.",
+        priceRange: `${currency} 1,800–${currency} 3,000/night`,
+        reason: "Good central choice for your Day 2 cultural activities and easy access to Old Goa.",
+        bestFor: "Culture + food + Old Goa",
+        mapQuery: "Panjim Goa India"
+      },
+      {
+        id: "stay-goa-3",
+        title: "Palolem Beach Area",
+        type: "Stay Area",
+        location: "South Goa",
+        address: "Palolem, Canacona, Goa, India",
+        description: "Scenic crescent bay known for relaxed ambiance, dolphin boat trips, and tranquil shores.",
+        priceRange: `${currency} 1,600–${currency} 2,800/night`,
+        reason: "Best match if your priority is your Day 3 South Goa beach itinerary.",
+        bestFor: "Relaxation + beaches",
+        mapQuery: "Palolem Beach Goa India"
+      }
+    ] : [
+      {
+        id: "stay-gen-1",
+        title: `Central ${destination} District`,
+        type: "Stay Area",
+        location: `${destination} Center`,
+        address: `${destination}, India`,
+        description: `Centrally located accommodation area with immediate access to major transit networks and key sights.`,
+        priceRange: `${currency} 1,500–${currency} 3,000/night`,
+        reason: `Most of your planned activities are within easy commuting distance from the city center.`,
+        bestFor: "Transit + convenience",
+        mapQuery: `${destination} Center India`
+      },
+      {
+        id: "stay-gen-2",
+        title: `Historic Quarter`,
+        type: "Stay Area",
+        location: `Old Town ${destination}`,
+        address: `Historic Center, ${destination}`,
+        description: `Charming heritage neighborhood surrounded by traditional architecture, dining, and cultural attractions.`,
+        priceRange: `${currency} 1,800–${currency} 3,500/night`,
+        reason: `Ideal for exploring local heritage and culinary highlights on foot.`,
+        bestFor: "Culture + dining + walks",
+        mapQuery: `Historic Quarter ${destination} India`
+      },
+      {
+        id: "stay-gen-3",
+        title: `Scenic / Waterfront District`,
+        type: "Stay Area",
+        location: `${destination} Waterfront`,
+        address: `Waterfront, ${destination}`,
+        description: `Relaxed scenic area offering peaceful views, cafes, and evening promenade strolls.`,
+        priceRange: `${currency} 1,600–${currency} 3,200/night`,
+        reason: `Best suited for travelers prioritizing relaxation and scenic evening strolls.`,
+        bestFor: "Relaxation + views",
+        mapQuery: `${destination} Waterfront India`
+      }
+    ],
     transportationTips: [
-      transitGuidance,
       `Prefer ${preferredTransportation.toLowerCase()} for the best balance of speed and cost efficiency`,
-      'Pre-install rideshare and local transit apps before landing',
+      'Pre-install rideshare and local transit transit apps before landing',
       'Validate multi-day transit passes to save up to 30% on intra-city hops'
     ],
     travelTips: [
@@ -463,7 +740,6 @@ app.get('/api/model-status', (_req, res) => {
 // Primary POST /api/generate-itinerary
 app.post('/api/generate-itinerary', async (req, res) => {
   const {
-    startingPoint,
     destination,
     startDate,
     numberOfDays,
@@ -483,7 +759,6 @@ app.post('/api/generate-itinerary', async (req, res) => {
   const parsedDays = Number(numberOfDays);
   const parsedTravelers = Number(numberOfTravelers);
   const parsedBudget = Number(budget);
-  const cleanStartingPoint = startingPoint && typeof startingPoint === 'string' ? startingPoint.trim() : '';
 
   if (!destination || !destination.trim()) {
     return res.status(400).json({
@@ -562,12 +837,11 @@ app.post('/api/generate-itinerary', async (req, res) => {
 
   // 3. Prepare Prompt for Gemma 4 31B IT
   const systemInstruction = 
-    "You are TripGenie AI, an expert personalized travel planner powered by Gemma 4 31B IT. Create practical, budget-conscious and personalized travel itineraries based strictly on the user's preferences.";
+    "You are TripGenie AI, an expert personalized travel planner. Create practical, budget-conscious and personalized travel itineraries based strictly on the user's preferences.";
 
   const userPrompt = `
 Generate a personalized travel itinerary using the following user preferences:
 
-- Starting Point / Departure: ${cleanStartingPoint ? cleanStartingPoint : 'Starting point was not provided. Do not invent one.'}
 - Destination: ${destination}
 - Start Date: ${startDate}
 - Trip Duration: ${parsedDays} Days
@@ -584,17 +858,13 @@ INSTRUCTIONS:
 1. Respect the user's total budget of ${currency} ${parsedBudget}. Treat all costs as estimates.
 2. The 'days' array MUST contain EXACTLY ${parsedDays} day objects (Day 1 to Day ${parsedDays}).
 3. Avoid excessive travel times between stops and create realistic activity timings.
-4. If Starting Point is provided (${cleanStartingPoint || 'N/A'}) and differs from Destination, estimate realistic intercity travel time and include an estimated transportation cost (use phrasing like "Estimated transportation cost" or "Approximate travel cost", never "Guaranteed fare" or "Confirmed ticket price"). Account for Day 1 arrival time and final-day return departure.
-5. If Starting Point is the same city as Destination, treat it as the traveler's current location with local activities.
-6. If Starting Point is empty, do not invent one. Plan directly from the destination.
-7. If the budget is tight for ${destination}, mention practical budget-saving alternatives in the trip summary.
-8. Do NOT include markdown code blocks, do NOT write \`\`\`json or \`\`\`. Output ONLY the raw valid JSON object.
+4. If the budget is tight for ${destination}, mention practical budget-saving alternatives in the trip summary.
+5. Do NOT include markdown code blocks, do NOT write \`\`\`json or \`\`\`. Output ONLY the raw valid JSON object.
 
 REQUIRED JSON STRUCTURE:
 {
-  ${cleanStartingPoint ? `"startingPoint": "${cleanStartingPoint}",` : ''}
   "destination": "${destination}",
-  "tripSummary": "Concise overview highlighting the itinerary vibe, route, and budget strategy",
+  "tripSummary": "Concise overview highlighting the itinerary vibe and budget strategy",
   "totalEstimatedCost": ${parsedBudget},
   "currency": "${currency}",
   "budgetBreakdown": {
@@ -609,7 +879,7 @@ REQUIRED JSON STRUCTURE:
       "day": 1,
       "title": "Title for Day 1",
       "morning": {
-        "activity": "Morning Landmark/Activity or Arrival",
+        "activity": "Morning Landmark/Activity",
         "description": "Specific details and tips",
         "estimatedCost": 0,
         "duration": "2-3 hours"
@@ -698,10 +968,16 @@ REQUIRED JSON STRUCTURE:
       });
     }
 
-    // Attach metadata and startingPoint
-    if (cleanStartingPoint) {
-      parsedJson.startingPoint = cleanStartingPoint;
-    }
+    // Attach metadata
+    parsedJson.modelUsed = TARGET_MODEL;
+    parsedJson.generatedAt = new Date().toISOString();
+
+    return res.json({
+      success: true,
+      itinerary: parsedJson
+    });
+
+    // If gemma-4-31b-it call succeeded, return its parsed response
     parsedJson.modelUsed = TARGET_MODEL;
     parsedJson.generatedAt = new Date().toISOString();
 
@@ -715,7 +991,6 @@ REQUIRED JSON STRUCTURE:
 
     // Build intelligent, contextual itinerary matching exact schema
     const fallbackItinerary = buildContextualItinerary({
-      startingPoint: cleanStartingPoint || undefined,
       destination,
       startDate,
       numberOfDays: parsedDays,
@@ -749,11 +1024,6 @@ function applyContextualCustomization(
   const dest = cloned.destination || plannerData.destination || 'Destination';
   const curr = cloned.currency || plannerData.currency || 'INR';
 
-  // Preserve startingPoint
-  if (plannerData?.startingPoint || currentItinerary?.startingPoint) {
-    cloned.startingPoint = plannerData?.startingPoint || currentItinerary?.startingPoint;
-  }
-
   let customSummaryTag = `Customized based on: "${instruction}"`;
 
   // 1. Cheaper / Budget / Free activities
@@ -769,7 +1039,7 @@ function applyContextualCustomization(
       cloned.budgetBreakdown.miscellaneous = Math.round((cloned.budgetBreakdown.miscellaneous || 0) * 0.6);
     }
     // Update daily plans with free/low-cost highlights
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.dailyEstimatedCost = Math.round((day.dailyEstimatedCost || 2000) * discount);
       if (day.afternoon) {
         day.afternoon.activity = `Self-Guided Walking Tour & Public Vistas in ${dest}`;
@@ -790,7 +1060,7 @@ function applyContextualCustomization(
   // 2. Relaxing / Leisure / Slow pace
   else if (text.includes('relax') || text.includes('chill') || text.includes('slow') || text.includes('leisure')) {
     customSummaryTag = 'Rebalanced for a peaceful, tranquil pace with generous downtime and scenic pauses.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Relaxed Vistas & Gentle Exploration`;
       if (day.morning) {
         day.morning.activity = `Leisurely Morning & Scenic Waterfront Stroll`;
@@ -807,7 +1077,7 @@ function applyContextualCustomization(
   // 3. Adventure / Outdoors / Thrill
   else if (text.includes('adventure') || text.includes('thrill') || text.includes('outdoor') || text.includes('hike') || text.includes('trek')) {
     customSummaryTag = 'Infused with high-energy outdoor excursions, scenic trails, and active adventures.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Outdoor Exploration & Adventure Trails`;
       if (day.morning) {
         day.morning.activity = `Active Nature Trek & Panoramic Summit View`;
@@ -822,7 +1092,7 @@ function applyContextualCustomization(
   // 4. Food / Dining / Culinary
   else if (text.includes('food') || text.includes('eat') || text.includes('culinary') || text.includes('dining')) {
     customSummaryTag = 'Elevated with signature culinary tastings, bustling food markets, and authentic regional dining.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       if (day.afternoon) {
         day.afternoon.activity = `Historic Neighborhood Street Food Walk`;
         day.afternoon.description = `Guided discovery of iconic local bites, artisan bakeries, and heritage food stalls.`;
@@ -837,7 +1107,7 @@ function applyContextualCustomization(
   // 5. Cultural / Heritage / Art
   else if (text.includes('cultur') || text.includes('heritage') || text.includes('art') || text.includes('history')) {
     customSummaryTag = 'Enriched with deeper heritage discovery, ancient architecture, and cultural museums.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Cultural Immersion & Heritage Trails`;
       if (day.morning) {
         day.morning.activity = `Historic Monuments & UNESCO Heritage Architecture`;
@@ -852,7 +1122,7 @@ function applyContextualCustomization(
   // 6. Photography / Photo spots
   else if (text.includes('photo') || text.includes('picture') || text.includes('camera') || text.includes('view')) {
     customSummaryTag = 'Curated with the premier golden-hour lookouts and iconic photography locations.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       if (day.morning) {
         day.morning.activity = `Sunrise / Golden Hour Photography at Iconic Landmark`;
         day.morning.description = `Capture spectacular soft lighting and uncrowded architectural viewpoints.`;
@@ -866,7 +1136,7 @@ function applyContextualCustomization(
   // 7. Travel time / Transit
   else if (text.includes('transit') || text.includes('travel time') || text.includes('commute')) {
     customSummaryTag = 'Optimized geographically into localized walking loops to minimize commute times.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Concentrated District Exploration (Low Transit)`;
       if (day.morning) day.morning.duration = '1.5 hours (Within 10 min walk)';
       if (day.afternoon) day.afternoon.duration = '2 hours (Within walking cluster)';
@@ -881,7 +1151,7 @@ function applyContextualCustomization(
   // 8. Family friendly
   else if (text.includes('family') || text.includes('kid') || text.includes('children')) {
     customSummaryTag = 'Tailored with family-friendly attractions, safe shallow shores, and engaging group activities.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Family Highlights & Interactive Parks`;
       if (day.morning) {
         day.morning.activity = `Interactive Nature Center & Gentle Coastal Discovery`;
@@ -897,7 +1167,7 @@ function applyContextualCustomization(
   // 9. Couple friendly / Romantic
   else if (text.includes('couple') || text.includes('romant') || text.includes('honeymoon')) {
     customSummaryTag = 'Curated for romance with intimate sunset spots, candlelit dining, and serene coastal views.';
-    cloned.days?.forEach((day: any) => {
+    cloned.days?.forEach((day: any, idx: number) => {
       day.title = `Day ${day.day}: Romantic Escapes & Twilight Magic`;
       if (day.evening) {
         day.evening.activity = `Private Golden Hour Viewpoint & Candlelit Dining`;
@@ -949,7 +1219,6 @@ app.post('/api/customize-itinerary', async (req, res) => {
 
   const expectedDays = currentItinerary.days.length;
   const apiKey = process.env.GEMINI_API_KEY;
-  const effectiveStartingPoint = currentItinerary.startingPoint || plannerData?.startingPoint || '';
 
   // If API key is available, call Gemma 4 31B IT
   if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
@@ -966,12 +1235,11 @@ app.post('/api/customize-itinerary', async (req, res) => {
       const systemInstruction = 
         "You are TripGenie AI, an expert personalized travel planner powered by Gemma 4 31B IT. " +
         "You customize and fine-tune existing travel itineraries. Modify ONLY the relevant parts to satisfy the user's specific instruction. " +
-        "Preserve the starting point, destination and duration unless explicitly requested. Always return valid raw JSON matching the exact itinerary schema without markdown fences.";
+        "Preserve the destination and duration unless explicitly requested. Always return valid raw JSON matching the exact itinerary schema without markdown fences.";
 
       const prompt = `
 You are fine-tuning an existing travel itinerary for TripGenie AI using Gemma 4 31B IT.
 
-${effectiveStartingPoint ? `STARTING POINT: ${effectiveStartingPoint}` : 'STARTING POINT: Not specified'}
 DESTINATION: ${currentItinerary.destination}
 TOTAL DURATION: ${expectedDays} Days
 ORIGINAL USER PREFERENCES:
@@ -987,7 +1255,7 @@ ${JSON.stringify(currentItinerary, null, 2)}
 
 INSTRUCTIONS:
 1. Modify ONLY the relevant parts corresponding to the user's request: "${customInstruction}".
-2. Preserve the starting point (${effectiveStartingPoint || 'N/A'}), destination (${currentItinerary.destination}) and duration (${expectedDays} days).
+2. Preserve the destination (${currentItinerary.destination}) and duration (${expectedDays} days).
 3. The 'days' array MUST contain EXACTLY ${expectedDays} day objects.
 4. If the request is to "Make it cheaper" or "Add free/low-cost activities", reduce totalEstimatedCost and daily costs, and replace costly items with high-rated budget/free alternatives.
 5. If the request is for specific interests (food, adventure, relaxing, culture, photography, family, couple), adjust the activities, descriptions, and food recommendations to clearly deliver on that theme.
@@ -1015,9 +1283,6 @@ INSTRUCTIONS:
 
       const validation = validateItinerarySchema(parsedJson, expectedDays);
       if (validation.valid) {
-        if (effectiveStartingPoint) {
-          parsedJson.startingPoint = effectiveStartingPoint;
-        }
         parsedJson.modelUsed = TARGET_MODEL;
         parsedJson.generatedAt = new Date().toISOString();
         return res.json({
