@@ -1,0 +1,6 @@
+{
+  "name": "TripGenie AI",
+  "description": "Your Journey. Your Budget. Your Perfect Plan. Modern AI Travel Planner.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
